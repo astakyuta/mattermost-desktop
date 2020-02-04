@@ -17,6 +17,7 @@ module.exports = merge(base, {
     index: './src/browser/index.jsx',
     settings: './src/browser/settings.jsx',
     updater: './src/browser/updater.jsx',
+    widget: './src/browser/widget.jsx',
     'webview/mattermost': './src/browser/webview/mattermost.js',
   },
   output: {

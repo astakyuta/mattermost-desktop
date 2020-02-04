@@ -47,6 +47,7 @@ const {
   session,
   BrowserWindow,
 } = electron;
+const { menubar } = require('menubar');
 const criticalErrorHandler = new CriticalErrorHandler();
 const assetsDir = path.resolve(app.getAppPath(), 'assets');
 const loginCallbackMap = new Map();
@@ -66,6 +67,8 @@ let registryConfig = null;
 let config = null;
 let trayIcon = null;
 let trayImages = null;
+let widget = null;
+let isReplyPending = false;
 
 // supported custom login paths (oath, saml)
 const customLoginRegexPaths = [
@@ -216,6 +219,34 @@ function initializeInterCommunicationEventListeners() {
   if (shouldShowTrayIcon()) {
     ipcMain.on('update-unread', handleUpdateUnreadEvent);
   }
+  
+  ipcMain.on('widget-reply', (event, payload) => {
+    console.log('message submitted', payload);
+    event.sender.send('response', {
+      success: false,
+      message: 'You sent: ' + payload.message,
+    });
+    mainWindow.webContents.postMessage(
+      {
+        type: 'reply-message',
+        message: {
+          version: remote.app.getVersion(),
+        },
+      },
+      mainWindow.webContents.location.origin
+    );
+  });
+
+  ipcMain.on('new-message', (event, payload) => {
+    console.log('new message', payload);
+    isReplyPending = true;
+    if (widget) {
+      console.log('open widget');
+      widget.showWindow();
+    } else {
+      console.log('widget not present');
+    }
+  });
 }
 
 function initializeMainWindowListeners() {
@@ -378,6 +409,10 @@ function handleAppWillFinishLaunching() {
 }
 
 function handleAppWebContentsCreated(dc, contents) {
+  // Initialize chat widget (menubar)
+  console.log('Initialize chat widget (menubar)');
+  initializeChatWidget();
+
   // initialize custom login tracking
   customLogins[contents.id] = {
     inProgress: false,
@@ -1038,4 +1073,53 @@ function resizeScreen(screen, browserWindow) {
 
   browserWindow.on('restore', handle);
   handle();
+}
+
+function initializeChatWidget() {
+  if (!trayIcon) return;
+  if (widget) return;
+
+  console.log('initializing widget');
+  widget = menubar({
+    index: 'file://' + process.cwd() + '/src/browser/widget.html',
+    showOnAllWorkspaces: true,
+    browserWindow: {
+      width: 300,
+      height: 400,
+      alwaysOnTop: true,
+      resizable: false,
+      webPreferences: { nodeIntegration: true },
+    },
+    tray: trayIcon,
+    showDockIcon: true,
+    // tooltip: 'Chat Widget',
+  });
+  widget.on('ready', () => {
+    console.log('widget is ready');
+  });
+  widget.on('after-create-window', () => {
+    console.log('widget window is created');
+    // widget.window.openDevTools();
+  });
+  widget.on('show', () => {
+    console.log('widget is shown');
+  });
+  widget.on('after-show', () => {
+    console.log('widget is shown');
+    // if (!isReplyPending) {
+    //   widget.hideWindow()
+    // }
+  });
+  widget.on('hide', () => {
+    console.log('widget is being hidden');
+  });
+  widget.on('after-hide', () => {
+    console.log('widget is now hidden');
+    if (isReplyPending) {
+      widget.showWindow()
+    }
+  });
+  widget.on('focus-lost', () => {
+    console.log('widget lost focus');
+  });
 }

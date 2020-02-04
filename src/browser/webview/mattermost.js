@@ -67,11 +67,32 @@ window.addEventListener('message', ({origin, data: {type, message = {}} = {}} = 
     break;
   }
   case 'dispatch-notification': {
+    console.log('triggering client notification');
+    ipcRenderer.send(
+      'new-message',
+      {
+        type: 'new-message',
+        message: message,
+      },
+      window.location.origin
+    );
+    ipcRenderer.sendToHost(
+      'new-message-host',
+      {
+        type: 'new-message',
+        message: message,
+      },
+      window.location.origin
+    );
     const {title, body, channel, teamId, silent} = message;
     ipcRenderer.sendToHost('dispatchNotification', title, body, channel, teamId, silent);
     break;
   }
   }
+});
+
+ipcRenderer.on('new-message-host', (event, payload) => {
+  console.log('received on host', payload);
 });
 
 ipcRenderer.on('notification-clicked', (event, {channel, teamId}) => {
