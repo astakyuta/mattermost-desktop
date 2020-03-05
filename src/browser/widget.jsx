@@ -6,40 +6,63 @@ class WidgetContainer extends React.Component {
     constructor(props) {
         super(props);
         this.state = {
-            message: '',
+            message: null,
+            reply: '',
         };
     }
 
     componentDidMount() {
-        console.log('widget window loaded');
-        ipcRenderer.on('response', (event, response) => {
-            console.log('message received', response.message);
+        ipcRenderer.send('widget-ready', null);
+        ipcRenderer.on('new-message', (event, payload) => {
+            console.log('message received', payload);
+            this.setState({
+                message: payload.message,
+            })
         })
     }
 
     handleMessageChange = (event) => {
-        this.setState({ message: event.target.value });
+        this.setState({ reply: event.target.value });
     }
 
-    handleOutgoingReply = () => {
-        const message = this.state.message;
-        const payload = { message: message };
+    handleKeyDown = (event) => {
+        if (event.keyCode == 13) {
+            this.handleSubmit(event);
+        }
+    }
+
+    handleSubmit = (event) => {
+        const { reply } = this.state;
+        const payload = { reply };
         console.log('sending reply', payload);
         ipcRenderer.send('widget-reply', payload);
+        this.setState({
+            reply: '',
+        });
     }
 
     render() {
+        const { message, reply } = this.state;
+        if (!message) {
+            return null;
+        }
+
         return (
-            <div>
-                <h2>Hey, you got a new message</h2>
-                <textarea
-                    id="message"
-                    style={{ width: '1000%' }}
-                    value={this.state.message}
-                    onChange={this.handleMessageChange}
-                />
-                <br />
-                <button id="reply" onClick={this.handleOutgoingReply}>Send</button>
+            <div className="wrapper">
+                <div className="header">
+                    <h2>{message.title}</h2>
+                </div>
+                <div className="message-box">
+                    <p>{message.body}</p>
+                </div>
+                <div className="reply-box">
+                    <textarea
+                        className="replyInput"
+                        value={reply}
+                        onChange={this.handleMessageChange}
+                        onKeyDown={this.handleKeyDown}
+                    />
+                </div>
             </div>
         );
     }

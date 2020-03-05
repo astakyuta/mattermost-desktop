@@ -7,7 +7,7 @@ import path from 'path';
 
 import {URL} from 'url';
 
-import electron from 'electron';
+import electron, { ipcRenderer } from 'electron';
 import isDev from 'electron-is-dev';
 import installExtension, {REACT_DEVELOPER_TOOLS} from 'electron-devtools-installer';
 import log from 'electron-log';
@@ -68,6 +68,7 @@ let config = null;
 let trayIcon = null;
 let trayImages = null;
 let widget = null;
+let ipcWidget = null;
 let isReplyPending = false;
 
 // supported custom login paths (oath, saml)
@@ -220,29 +221,34 @@ function initializeInterCommunicationEventListeners() {
     ipcMain.on('update-unread', handleUpdateUnreadEvent);
   }
   
+  ipcMain.on('widget-ready', (event, payload) => {
+    console.log('Widget is now ready');
+    ipcWidget = event.sender;
+  });
+
   ipcMain.on('widget-reply', (event, payload) => {
     console.log('message submitted', payload);
-    event.sender.send('response', {
-      success: false,
-      message: 'You sent: ' + payload.message,
-    });
-    mainWindow.webContents.postMessage(
-      {
-        type: 'reply-message',
-        message: {
-          version: remote.app.getVersion(),
-        },
-      },
-      mainWindow.webContents.location.origin
-    );
+    // event.sender.send('response', {
+    //   success: false,
+    //   message: 'You sent: ' + payload.message,
+    // });
+    isReplyPending = false;
+    widget.hideWindow();
   });
 
   ipcMain.on('new-message', (event, payload) => {
     console.log('new message', payload);
     isReplyPending = true;
     if (widget) {
-      console.log('open widget');
       widget.showWindow();
+      if (ipcWidget) {
+        ipcWidget.send('new-message', {
+          message: payload.message,
+        });
+        console.log('Message sent to widget');
+      } else {
+        console.log('unable to send message');
+      }
     } else {
       console.log('widget not present');
     }
@@ -1085,17 +1091,18 @@ function initializeChatWidget() {
     showOnAllWorkspaces: true,
     browserWindow: {
       width: 300,
-      height: 400,
+      height: 250,
       alwaysOnTop: true,
-      resizable: false,
+      resizable: true,
       webPreferences: { nodeIntegration: true },
     },
+    preloadWindow: true,
     tray: trayIcon,
-    showDockIcon: true,
+    // showDockIcon: true,
     // tooltip: 'Chat Widget',
   });
   widget.on('ready', () => {
-    console.log('widget is ready');
+    console.log('widget is created');
   });
   widget.on('after-create-window', () => {
     console.log('widget window is created');
