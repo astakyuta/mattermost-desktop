@@ -145,6 +145,16 @@ export default class MattermostView extends React.Component {
     // 'dom-ready' means "content has been loaded"
     // So this would be emitted again when reloading a webview
     webview.addEventListener('dom-ready', () => {
+
+    // try {
+    //   this.webviewRef.current.send('notification-test', {abc: 123});
+    //
+    //   // ipcRenderer.send('new-message-reply-2', this.webviewRef);
+    // } catch (e) {
+    //   console.log("error here is as follows: ", e);
+    // }
+
+
       // webview.openDevTools();
 
       // Remove this once https://github.com/electron/electron/issues/14474 is fixed

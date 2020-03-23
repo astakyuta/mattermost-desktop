@@ -220,24 +220,28 @@ function initializeInterCommunicationEventListeners() {
   if (shouldShowTrayIcon()) {
     ipcMain.on('update-unread', handleUpdateUnreadEvent);
   }
-  
+
   ipcMain.on('widget-ready', (event, payload) => {
     console.log('Widget is now ready');
+    console.log(' event in widget-ready is: ', event);
     ipcWidget = event.sender;
+    console.log(' ipcwidget in widget-ready is: ', ipcWidget);
+    console.log('payloads are: ', payload);
   });
 
   ipcMain.on('widget-reply', (event, payload) => {
     console.log('message submitted', payload);
-    // event.sender.send('response', {
-    //   success: false,
-    //   message: 'You sent: ' + payload.message,
-    // });
+    // console.log('message submitted event data', event);
+    // console.log('main window object is: ', mainWindow);
+
     isReplyPending = false;
-    widget.hideWindow();
+    widget.hideWindow(); // for hiding window after posting
   });
 
   ipcMain.on('new-message', (event, payload) => {
     console.log('new message', payload);
+    console.log('event is: ', event);
+    console.log('widget is: ', widget);
     isReplyPending = true;
     if (widget) {
       widget.showWindow();
@@ -1012,6 +1016,7 @@ function getDeeplinkingURL(args) {
 }
 
 function shouldShowTrayIcon() {
+  return true;
   if (process.platform === 'win32') {
     return true;
   }
@@ -1082,8 +1087,10 @@ function resizeScreen(screen, browserWindow) {
 }
 
 function initializeChatWidget() {
+  console.log('comes under initializeChatWidget');
   if (!trayIcon) return;
   if (widget) return;
+  // mainWindow.openDevTools(); // for consoles view in widget
 
   console.log('initializing widget');
   widget = menubar({
@@ -1106,7 +1113,7 @@ function initializeChatWidget() {
   });
   widget.on('after-create-window', () => {
     console.log('widget window is created');
-    // widget.window.openDevTools();
+    // widget.window.openDevTools(); // for consoles view in widget
   });
   widget.on('show', () => {
     console.log('widget is shown');
@@ -1123,7 +1130,7 @@ function initializeChatWidget() {
   widget.on('after-hide', () => {
     console.log('widget is now hidden');
     if (isReplyPending) {
-      widget.showWindow()
+      widget.showWindow();
     }
   });
   widget.on('focus-lost', () => {

@@ -268,6 +268,13 @@ ipcRenderer.on('exit-fullscreen', () => {
   }
 });
 
+// ipcRenderer.on('notification-test', (event, payload) => {
+//   console.log('event here is as follows: ', JSON.stringify(event));
+//   console.log(JSON.stringify(payload));
+//   document.getElementById('postCreateFooter').style.height = '300px';
+//   // document.write("some text comes here under JSON");
+// });
+
 // mattermost-webapp is SPA. So cache is not cleared due to no navigation.
 // We needed to manually clear cache to free memory in long-term-use.
 // http://seenaburns.com/debugging-electron-memory-usage/
