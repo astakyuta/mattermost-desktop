@@ -86,6 +86,7 @@ class WidgetContainer extends React.Component {
         }
 
         return (
+
             <div className="wrapper">
                 <div className="header">
                     <h2>{this.sender}</h2>

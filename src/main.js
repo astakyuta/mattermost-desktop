@@ -235,7 +235,7 @@ function initializeInterCommunicationEventListeners() {
     // console.log('main window object is: ', mainWindow);
 
     isReplyPending = false;
-    widget.hideWindow(); // for hiding window after posting
+    // widget.hideWindow(); // for hiding window after posting
   });
 
   ipcMain.on('new-message', (event, payload) => {
@@ -1090,7 +1090,7 @@ function initializeChatWidget() {
   console.log('comes under initializeChatWidget');
   if (!trayIcon) return;
   if (widget) return;
-  // mainWindow.openDevTools(); // for consoles view in widget
+  mainWindow.openDevTools(); // for consoles view in widget
 
   console.log('initializing widget');
   widget = menubar({
@@ -1105,7 +1105,7 @@ function initializeChatWidget() {
     },
     preloadWindow: true,
     tray: trayIcon,
-    // showDockIcon: true,
+    showDockIcon: true,
     // tooltip: 'Chat Widget',
   });
   widget.on('ready', () => {
@@ -1113,7 +1113,7 @@ function initializeChatWidget() {
   });
   widget.on('after-create-window', () => {
     console.log('widget window is created');
-    // widget.window.openDevTools(); // for consoles view in widget
+    widget.window.openDevTools(); // for consoles view in widget
   });
   widget.on('show', () => {
     console.log('widget is shown');
