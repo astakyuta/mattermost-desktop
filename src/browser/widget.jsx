@@ -12,6 +12,7 @@ class WidgetContainer extends React.Component {
             // message: null,
             message: [],
             reply: '',
+            channelIds: [],
         };
 
         this.messageDetails = {
@@ -21,6 +22,8 @@ class WidgetContainer extends React.Component {
             // props: '',
             // root_id: '',
         };
+
+        this.receivedMessagesDetails = [];
 
         this.sender = '';
     }
@@ -33,6 +36,32 @@ class WidgetContainer extends React.Component {
             this.messageDetails.channel_id = payload.message.channel.id;
             // this.messageDetails.user_id = payload.message.channel.teammate_id;
 
+
+            if(this.receivedMessagesDetails.length < 1) {
+                let newMessage = {
+                    channelId: payload.message.channel.id,
+                    message: payload.message
+                };
+                this.receivedMessagesDetails.push(newMessage);
+                console.log('1: ', this.receivedMessagesDetails);
+            } else {
+                this.receivedMessagesDetails.map((item, key) => {    // function(item) {
+                    if(item.channelId === payload.message.channel.id) {
+                        item.message.concat(payload.message);
+                        console.log('2: ', this.receivedMessagesDetails);
+                    } else{
+                        let newMessage = {
+                            message: payload.message,
+                            channelId: payload.message.channel.id
+                        };
+                        this.receivedMessagesDetails.push(newMessage);
+                        console.log('3: ', this.receivedMessagesDetails);
+                    }
+                    // return <div key={key} className="message-box"><p> {item.body} </p></div>;
+                });
+            }
+
+
             this.setState({
                 // message: payload.message,
                 message: this.state.message.concat(payload.message),
@@ -40,6 +69,10 @@ class WidgetContainer extends React.Component {
 
             // this.setState.message.push(payload.message);
         })
+    }
+
+    handleChannelCheck(val) {
+        return this.state.data.some(item => val.name === item.name);
     }
 
     handleMessageChange = (event) => {
@@ -88,10 +121,28 @@ class WidgetContainer extends React.Component {
 
     render() {
         const { message, reply } = this.state;
+        // const { newRenderedessages } = this.receivedMessagesDetails;
         console.log('message is: ', message);
+        console.log('new rendered messages: ', this.receivedMessagesDetails);
         if (!message) {
             return null;
         }
+
+        // var friends = this.state.friends.map(
+        //   function iterator( friend ) {
+        //
+        //       return(
+        //         <Friend
+        //           key={ friend.id }
+        //           friend={ friend }
+        //           isSelected={ this.isSelected( friend ) }
+        //           toggleSelection={ this.toggleSelection }>
+        //         </Friend>
+        //       );
+        //
+        //   },
+        //   this
+        // );
 
         return (
 
@@ -106,7 +157,6 @@ class WidgetContainer extends React.Component {
                       {
                           message.map((item, key) => {    // function(item) {
                             console.log(key);
-                            // return item;
                             return <div key={key} className="message-box"><p> {item.body} </p></div>;
                           })
                       }
@@ -118,6 +168,7 @@ class WidgetContainer extends React.Component {
                         <textarea className="replyInput" value={reply} onChange={this.handleMessageChange} onKeyDown={this.handleKeyDown}/>
                       </div>
                   </TabPanel>
+
                   {/*<TabPanel>*/}
                   {/*    <h2>Any content 2</h2>*/}
                   {/*</TabPanel>*/}
