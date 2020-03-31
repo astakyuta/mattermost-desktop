@@ -18,9 +18,6 @@ class WidgetContainer extends React.Component {
         this.messageDetails = {
             message: '',
             channel_id: '',
-            // user_id: '',
-            // props: '',
-            // root_id: '',
         };
 
         this.receivedMessagesDetails = [];
@@ -37,30 +34,35 @@ class WidgetContainer extends React.Component {
             // this.messageDetails.user_id = payload.message.channel.teammate_id;
 
 
-            if(this.receivedMessagesDetails.length < 1) {
+            if(this.receivedMessagesDetails.length < 1) { // For first entry in parent array
                 let newMessage = {
                     channelId: payload.message.channel.id,
-                    message: payload.message
+                    message: [payload.message],
                 };
                 this.receivedMessagesDetails.push(newMessage);
                 console.log('1: ', this.receivedMessagesDetails);
-            } else {
-                this.receivedMessagesDetails.map((item, key) => {    // function(item) {
-                    if(item.channelId === payload.message.channel.id) {
-                        item.message.concat(payload.message);
-                        console.log('2: ', this.receivedMessagesDetails);
-                    } else{
-                        let newMessage = {
-                            message: payload.message,
-                            channelId: payload.message.channel.id
-                        };
-                        this.receivedMessagesDetails.push(newMessage);
-                        console.log('3: ', this.receivedMessagesDetails);
-                    }
-                    // return <div key={key} className="message-box"><p> {item.body} </p></div>;
-                });
-            }
+            } else { // For all entries except the first entry in parent array
 
+                const channelExistance = this.handleExistingChannel(payload.message.channel.id);
+
+                if(channelExistance.length > 0) { // If channel already present inside received message's array, add the message data into specific array
+                    this.receivedMessagesDetails.find((item) => {
+                        if (item.channelId === payload.message.channel.id) {
+                            item.message.push(payload.message);
+                            console.log('2: ', this.receivedMessagesDetails);
+                            return true;
+                        }
+                    });
+                } else { // If channel not found inside received message's array, add a new message object with new channelId in parent array
+                    let newMessage = {
+                        channelId: payload.message.channel.id,
+                        message: [payload.message],
+                    };
+                    this.receivedMessagesDetails.push(newMessage);
+                    console.log('3: ', this.receivedMessagesDetails);
+                }
+
+            }
 
             this.setState({
                 // message: payload.message,
@@ -71,8 +73,19 @@ class WidgetContainer extends React.Component {
         })
     }
 
-    handleChannelCheck(val) {
-        return this.state.data.some(item => val.name === item.name);
+    handleExistingChannel(channelId) {
+
+        // console.log('received message details under handle function: ', this.receivedMessagesDetails);
+
+        let testResult = this.receivedMessagesDetails.reduce(function (foundChannel, item) {
+            if (item.channelId == channelId) {
+                return foundChannel.concat(item.channelId);
+            } else {
+                return foundChannel;
+            }
+        }, []);
+
+        return testResult;
     }
 
     handleMessageChange = (event) => {
@@ -127,22 +140,6 @@ class WidgetContainer extends React.Component {
         if (!message) {
             return null;
         }
-
-        // var friends = this.state.friends.map(
-        //   function iterator( friend ) {
-        //
-        //       return(
-        //         <Friend
-        //           key={ friend.id }
-        //           friend={ friend }
-        //           isSelected={ this.isSelected( friend ) }
-        //           toggleSelection={ this.toggleSelection }>
-        //         </Friend>
-        //       );
-        //
-        //   },
-        //   this
-        // );
 
         return (
 
