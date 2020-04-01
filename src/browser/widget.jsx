@@ -13,6 +13,8 @@ class WidgetContainer extends React.Component {
             message: [],
             reply: '',
             channelIds: [],
+            receivedMessages: [],
+            tabIndex: 0,
         };
 
         this.messageDetails = {
@@ -60,13 +62,14 @@ class WidgetContainer extends React.Component {
                     };
                     this.receivedMessagesDetails.push(newMessage);
                     console.log('3: ', this.receivedMessagesDetails);
-                }
+                } // end of inner if
 
-            }
+            } // end of outer if
 
             this.setState({
                 // message: payload.message,
                 message: this.state.message.concat(payload.message),
+                receivedMessages: this.receivedMessagesDetails,
             });
 
             // this.setState.message.push(payload.message);
@@ -133,10 +136,11 @@ class WidgetContainer extends React.Component {
     }
 
     render() {
-        const { message, reply } = this.state;
+        const {message, reply, receivedMessages} = this.state;
+        // const { receivedMessages } = this.state.receivedMessages;
         // const { newRenderedessages } = this.receivedMessagesDetails;
         console.log('message is: ', message);
-        console.log('new rendered messages: ', this.receivedMessagesDetails);
+        console.log('receivedMessages inside render: ', receivedMessages);
         if (!message) {
             return null;
         }
@@ -145,26 +149,52 @@ class WidgetContainer extends React.Component {
 
           <div className="wrapper">
 
-              <Tabs>
+              <Tabs selectedIndex={this.state.tabIndex} onSelect={tabIndex => this.setState({ tabIndex })}>
                   <TabList>
-                      <Tab>{this.sender}</Tab>
-                  </TabList>
-
-                  <TabPanel>
+                      {/*<Tab>{this.sender}</Tab>*/}
                       {
-                          message.map((item, key) => {    // function(item) {
-                            console.log(key);
-                            return <div key={key} className="message-box"><p> {item.body} </p></div>;
+                          receivedMessages.map((item, key) => {    // function(item) {
+                              console.log(key);
+                              return <Tab key={key}> {item.message[0].channel.display_name} </Tab>;
                           })
                       }
+                  </TabList>
 
-                      {/*<div className="message-box">*/}
-                      {/*    <p>{message.body}</p>*/}
-                      {/*</div>*/}
-                      <div className="reply-box">
-                        <textarea className="replyInput" value={reply} onChange={this.handleMessageChange} onKeyDown={this.handleKeyDown}/>
-                      </div>
-                  </TabPanel>
+                  {
+                      receivedMessages.map((item, key) => {
+                          return (
+                          <TabPanel key={key}>
+                              {
+                                  item.message.map((message, index) => {
+                                      return (<div key={index} className="message-box"><p> {message.body} </p></div>);
+                                  })
+                              }
+                          </TabPanel>);
+                      })
+                  }
+
+                  {/*<TabPanel>*/}
+                  {/*    {*/}
+                  {/*        receivedMessages.map((item, key) => {*/}
+                  {/*            return <div key={key} className="message-box"><p> {item.message.body} </p></div>;*/}
+                  {/*        });*/}
+                  {/*    }*/}
+                  {/*    <div className="reply-box">*/}
+                  {/*        <textarea className="replyInput" value={reply} onChange={this.handleMessageChange} onKeyDown={this.handleKeyDown}/>*/}
+                  {/*    </div>*/}
+                  {/*</TabPanel>*/}
+
+                  {/*<TabPanel>*/}
+                  {/*    {*/}
+                  {/*        message.map((item, key) => {    // function(item) {*/}
+                  {/*          console.log(key);*/}
+                  {/*          return <div key={key} className="message-box"><p> {item.body} </p></div>;*/}
+                  {/*        })*/}
+                  {/*    }*/}
+                  {/*    <div className="reply-box">*/}
+                  {/*      <textarea className="replyInput" value={reply} onChange={this.handleMessageChange} onKeyDown={this.handleKeyDown}/>*/}
+                  {/*    </div>*/}
+                  {/*</TabPanel>*/}
 
                   {/*<TabPanel>*/}
                   {/*    <h2>Any content 2</h2>*/}
