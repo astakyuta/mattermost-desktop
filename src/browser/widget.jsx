@@ -15,14 +15,18 @@ class WidgetContainer extends React.Component {
             channelIds: [],
             receivedMessages: [],
             tabIndex: 0,
+            replyDetails: {
+                message: '',
+                channel_id: '',
+            }, // separately used for different channels
         };
 
-        this.messageDetails = {
+        this.messageDetails = { // changing with replyDetails inside state
             message: '',
             channel_id: '',
         };
 
-        this.receivedMessagesDetails = [];
+        this.receivedMessagesDetails = []; // at the end of assigning value, the whole thing is submitted to receivedMessages state.
 
         this.sender = '';
     }
@@ -91,9 +95,22 @@ class WidgetContainer extends React.Component {
         return testResult;
     }
 
-    handleMessageChange = (event) => {
-        this.setState({ reply: event.target.value });
+    // handleMessageChange = (event) => {
+    //     this.setState({ reply: event.target.value });
+    // }
+
+    handleReply = (event) => {
+        console.log('event data in handle reply: ', event);
+        this.setState({
+            reply: event.target.value, // can be deleted after
+            replyDetails: {
+                message: event.target.value,
+                channel_id: event.target.name,
+            },
+        });
     }
+
+
 
     handleKeyDown = (event) => {
         if (event.keyCode == 13) {
@@ -102,6 +119,7 @@ class WidgetContainer extends React.Component {
     }
 
     handleSubmit = (event) => {
+        const { replyDetails } = this.state;
         console.log('event in handle: ', event);
         console.log('this.state in handle: ', this.state);
         const { reply } = this.state;
@@ -112,6 +130,8 @@ class WidgetContainer extends React.Component {
             reply: '',
         });
         this.messageDetails.message = this.state.reply;
+        console.log('message details: ', this.messageDetails);
+        console.log('reply details: ', replyDetails);
 
         // let token = 'Bearer eeodjab9wbnyxyabdbfern7rzw';
         let url = 'http://teamcomm.ga/api/v4/posts';
@@ -123,7 +143,8 @@ class WidgetContainer extends React.Component {
                 // 'Authorization': token,
                 'X-Requested-With': 'XMLHttpRequest',
             },
-            body: JSON.stringify(this.messageDetails), // body data type must match "Content-Type" header
+            body: JSON.stringify(replyDetails), // body data type must match "Content-Type" header
+            // body: JSON.stringify(this.messageDetails),
         })
         .then((response) => {
             return response.json();
@@ -166,9 +187,16 @@ class WidgetContainer extends React.Component {
                           <TabPanel key={key}>
                               {
                                   item.message.map((message, index) => {
-                                      return (<div key={index} className="message-box"><p> {message.body} </p></div>);
+                                      return (
+                                        <div key={index}>
+                                            <div className="message-box"><p> {message.body} </p></div>
+                                        </div>
+                                      );
                                   })
                               }
+                              <div className="reply-box">
+                                  <textarea className="replyInput" name={item.channelId} value={reply} onChange={this.handleReply} onKeyDown={this.handleKeyDown}/>
+                              </div>
                           </TabPanel>);
                       })
                   }
