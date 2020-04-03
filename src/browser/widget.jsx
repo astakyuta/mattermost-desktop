@@ -110,7 +110,30 @@ class WidgetContainer extends React.Component {
         });
     }
 
+    removeTab(tabIndex) {
+        console.log('tabindex: ', tabIndex);
+        console.log('remove tabs function is called');
+        var array = [...this.state.receivedMessages]; // make a separate copy of the array
+        // var index = array.indexOf(tabIndex);
+        console.log('array is: ', array);
+        // console.log('index in console is: ', index);
 
+        array.splice(tabIndex, 1);
+
+        console.log('array after slice: ', array);
+
+        this.setState({
+            receivedMessages: array,
+            tabIndex: 0,
+        });
+
+
+
+        // this.setState({
+        //     tabs: this.state.tabs.filter((tab, i) => i !== index),
+        //     tabIndex: this.state.tabIndex - 1,
+        // });
+    }
 
     handleKeyDown = (event) => {
         if (event.keyCode == 13) {
@@ -123,12 +146,28 @@ class WidgetContainer extends React.Component {
         console.log('event in handle: ', event);
         console.log('this.state in handle: ', this.state);
         const { reply } = this.state;
-        const payload = { reply };
+        const tabCount = this.state.receivedMessages.length;
+        // let payload = {
+        //     reply: reply,
+        //     tabcount: tabcount
+        // };
+
+        const payload = {reply, tabCount};
+
+        // const { tabCount } = this.state.receivedMessages.length;
+        // const payload = { tabCount };
+
         console.log('sending reply', payload);
+
+
+
         ipcRenderer.send('widget-reply', payload);
-        this.setState({
+
+
+        this.setState({ // resets the reply's textarea
             reply: '',
         });
+
         this.messageDetails.message = this.state.reply;
         console.log('message details: ', this.messageDetails);
         console.log('reply details: ', replyDetails);
@@ -151,6 +190,8 @@ class WidgetContainer extends React.Component {
         })
         .then((data) => {
             console.log(data);
+            console.log('tab index: ', this.state.tabIndex);
+            this.removeTab(this.state.tabIndex); // this.state.tabIndex
         }).catch((error) => {
             console.error('Error:', error);
         });
