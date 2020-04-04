@@ -116,16 +116,27 @@ class WidgetContainer extends React.Component {
         var array = [...this.state.receivedMessages]; // make a separate copy of the array
         // var index = array.indexOf(tabIndex);
         console.log('array is: ', array);
+        console.log('received messages details after array is: ', this.receivedMessagesDetails);
         // console.log('index in console is: ', index);
+
+        var msgDetailsArr = [...this.receivedMessagesDetails];
+        msgDetailsArr.splice(tabIndex, 1);
+        this.receivedMessagesDetails = msgDetailsArr;
+
+        console.log('received messages details after slicing array is: ', this.receivedMessagesDetails);
+
 
         array.splice(tabIndex, 1);
 
         console.log('array after slice: ', array);
+        console.log('received messages after slice: ', this.state.receivedMessages);
 
         this.setState({
             receivedMessages: array,
             tabIndex: 0,
         });
+
+        console.log('received messages after setting after slice: ', this.state.receivedMessages);
 
 
 
