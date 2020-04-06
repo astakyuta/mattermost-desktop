@@ -1093,11 +1093,19 @@ function initializeChatWidget() {
   console.log('comes under initializeChatWidget');
   if (!trayIcon) return;
   if (widget) return;
-  // mainWindow.openDevTools(); // for consoles view in widget
+  mainWindow.openDevTools(); // for consoles view in widget
 
   console.log('initializing widget');
+  console.log(process.cwd());
+  console.log(app.getAppPath());
+
+
+
   widget = menubar({
-    index: 'file://' + process.cwd() + '/src/browser/widget.html',
+    // index: 'file://' + process.cwd() + '/src/browser/widget.html',
+    // index: app.getPath('userData') + '/src/browser/widget.html',
+
+    index: 'file://' + app.getAppPath() + '/browser/widget.html',
     showOnAllWorkspaces: true,
     browserWindow: {
       width: 300,
@@ -1108,7 +1116,7 @@ function initializeChatWidget() {
     },
     preloadWindow: true,
     tray: trayIcon,
-    showDockIcon: true,
+    // showDockIcon: true,  // for showing widget on all windoww
     // tooltip: 'Chat Widget',
   });
   widget.on('ready', () => {
@@ -1116,7 +1124,7 @@ function initializeChatWidget() {
   });
   widget.on('after-create-window', () => {
     console.log('widget window is created');
-    // widget.window.openDevTools(); // for consoles view in widget
+    widget.window.openDevTools(); // for consoles view in widget
   });
   widget.on('show', () => {
     console.log('widget is shown');

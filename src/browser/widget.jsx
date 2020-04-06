@@ -214,9 +214,9 @@ class WidgetContainer extends React.Component {
         // const { newRenderedessages } = this.receivedMessagesDetails;
         console.log('message is: ', message);
         console.log('receivedMessages inside render: ', receivedMessages);
-        if (!message) {
-            return null;
-        }
+        // if (!message) {
+        //     return null;
+        // }
 
         return (
 
