@@ -177,6 +177,10 @@ class WidgetContainer extends React.Component {
 
         this.setState({ // resets the reply's textarea
             reply: '',
+            replyDetails: {
+                message: '',
+                channel_id: '',
+            },
         });
 
         this.messageDetails.message = this.state.reply;
@@ -209,7 +213,7 @@ class WidgetContainer extends React.Component {
     }
 
     render() {
-        const {message, reply, receivedMessages} = this.state;
+        const {message, reply, receivedMessages, replyDetails} = this.state;
         // const { receivedMessages } = this.state.receivedMessages;
         // const { newRenderedessages } = this.receivedMessagesDetails;
         console.log('message is: ', message);
@@ -222,7 +226,7 @@ class WidgetContainer extends React.Component {
 
           <div className="wrapper">
 
-              <Tabs selectedIndex={this.state.tabIndex} onSelect={tabIndex => this.setState({ tabIndex })}>
+              <Tabs selectedIndex={this.state.tabIndex} onSelect={tabIndex => this.setState({ tabIndex, replyDetails: {message: ''} })}>
                   <TabList>
                       {/*<Tab>{this.sender}</Tab>*/}
                       {
@@ -247,7 +251,7 @@ class WidgetContainer extends React.Component {
                                   })
                               }
                               <div className="reply-box">
-                                  <textarea className="replyInput" name={item.channelId} value={reply} onChange={this.handleReply} onKeyDown={this.handleKeyDown}/>
+                                  <textarea key={key} className="replyInput" name={item.channelId} value={replyDetails.message} onChange={this.handleReply} onKeyDown={this.handleKeyDown}/>
                               </div>
                           </TabPanel>);
                       })
