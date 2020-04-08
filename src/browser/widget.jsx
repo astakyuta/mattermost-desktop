@@ -241,15 +241,17 @@ class WidgetContainer extends React.Component {
                       receivedMessages.map((item, key) => {
                           return (
                           <TabPanel key={key}>
+                              <div className="messages-overflow">
                               {
                                   item.message.map((message, index) => {
                                       return (
                                         <div key={index}>
-                                            <div className="message-box"><p> {message.body} </p></div>
+                                            <div className="message-box"><p className="margin-bottom-0"> {message.body} </p></div>
                                         </div>
                                       );
                                   })
                               }
+                              </div>
                               <div className="reply-box">
                                   <textarea key={key} className="replyInput" name={item.channelId} value={replyDetails.message} onChange={this.handleReply} onKeyDown={this.handleKeyDown}/>
                               </div>
