@@ -246,7 +246,8 @@ function initializeInterCommunicationEventListeners() {
     console.log('event is: ', event);
     console.log('widget is: ', widget);
     isReplyPending = true;
-    if (widget) {
+    // if (widget) {
+    if (widget && typeof payload.message.channel !== 'undefined') { // payload.message.channel && typeof payload.message.channel !== 'undefined' && payload.message.requireInteraction === 'false'
       widget.showWindow();
       if (ipcWidget) {
         ipcWidget.send('new-message', {
@@ -424,6 +425,8 @@ function handleAppWillFinishLaunching() {
 function handleAppWebContentsCreated(dc, contents) {
   // Initialize chat widget (menubar)
   console.log('Initialize chat widget (menubar)');
+  console.log('dc: ', dc);
+  console.log('contents: ', contents);
   initializeChatWidget();
 
   // initialize custom login tracking
@@ -1093,13 +1096,11 @@ function initializeChatWidget() {
   console.log('comes under initializeChatWidget');
   if (!trayIcon) return;
   if (widget) return;
-  mainWindow.openDevTools(); // for consoles view in widget
+  // mainWindow.openDevTools(); // for consoles view in widget
 
   console.log('initializing widget');
   console.log(process.cwd());
   console.log(app.getAppPath());
-  console.log(loginCallbackMap);
-  console.log(registryConfig);
 
 
   widget = menubar({
@@ -1110,22 +1111,22 @@ function initializeChatWidget() {
     showOnAllWorkspaces: true,
     browserWindow: {
       width: 300,
-      height: 250,
+      height: 300,
       alwaysOnTop: true,
-      resizable: true,
+      resizable: false,
       webPreferences: { nodeIntegration: true },
     },
     preloadWindow: true,
     tray: trayIcon,
-    showDockIcon: true,  // for showing widget on all windoww
-    // tooltip: 'Chat Widget',
+    showDockIcon: false,  // for showing widget on all window if value is 'false'
+    tooltip: 'Chat Widget',
   });
   widget.on('ready', () => {
     console.log('widget is created');
   });
   widget.on('after-create-window', () => {
     console.log('widget window is created');
-    widget.window.openDevTools(); // for consoles view in widget
+    // widget.window.openDevTools(); // for consoles view in widget
   });
   widget.on('show', () => {
     console.log('widget is shown');
