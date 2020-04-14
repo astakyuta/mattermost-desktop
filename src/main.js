@@ -1096,7 +1096,7 @@ function initializeChatWidget() {
   console.log('comes under initializeChatWidget');
   if (!trayIcon) return;
   if (widget) return;
-  // mainWindow.openDevTools(); // for consoles view in widget
+  mainWindow.openDevTools(); // for consoles view in widget
 
   console.log('initializing widget');
   console.log(process.cwd());
@@ -1113,7 +1113,7 @@ function initializeChatWidget() {
       width: 300,
       height: 300,
       alwaysOnTop: true,
-      resizable: false,
+      resizable: true,
       webPreferences: { nodeIntegration: true },
     },
     preloadWindow: true,

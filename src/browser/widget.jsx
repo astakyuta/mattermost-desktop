@@ -246,7 +246,7 @@ class WidgetContainer extends React.Component {
                                   item.message.map((message, index) => {
                                       return (
                                         <div key={index}>
-                                            <div className="message-box"><p className="margin-bottom-0"> {message.body} </p></div>
+                                            <div className="message-box"><p className="single-message"> {message.body} </p></div>
                                         </div>
                                       );
                                   })
@@ -259,32 +259,7 @@ class WidgetContainer extends React.Component {
                       })
                   }
 
-                  {/*<TabPanel>*/}
-                  {/*    {*/}
-                  {/*        receivedMessages.map((item, key) => {*/}
-                  {/*            return <div key={key} className="message-box"><p> {item.message.body} </p></div>;*/}
-                  {/*        });*/}
-                  {/*    }*/}
-                  {/*    <div className="reply-box">*/}
-                  {/*        <textarea className="replyInput" value={reply} onChange={this.handleMessageChange} onKeyDown={this.handleKeyDown}/>*/}
-                  {/*    </div>*/}
-                  {/*</TabPanel>*/}
 
-                  {/*<TabPanel>*/}
-                  {/*    {*/}
-                  {/*        message.map((item, key) => {    // function(item) {*/}
-                  {/*          console.log(key);*/}
-                  {/*          return <div key={key} className="message-box"><p> {item.body} </p></div>;*/}
-                  {/*        })*/}
-                  {/*    }*/}
-                  {/*    <div className="reply-box">*/}
-                  {/*      <textarea className="replyInput" value={reply} onChange={this.handleMessageChange} onKeyDown={this.handleKeyDown}/>*/}
-                  {/*    </div>*/}
-                  {/*</TabPanel>*/}
-
-                  {/*<TabPanel>*/}
-                  {/*    <h2>Any content 2</h2>*/}
-                  {/*</TabPanel>*/}
               </Tabs>
 
           </div>

@@ -30,12 +30,13 @@
             color: #fff;
         }
         .message-box {
-            padding: 10px;
-            display: flex;
-            flex: 1;
-            flex-direction: column;
+            padding: 8px;
+            display: inline-block;
+            /*display: flex;*/
+            /*flex: 1;*/
+            /*flex-direction: column;*/
             overflow-y: scroll;
-            background: rgba(61, 60, 64, 0.05)
+            /*background: rgba(61, 60, 64, 0.05)*/
         }
         .reply-box {
             display: flex;
@@ -58,11 +59,35 @@
             margin-bottom: 0 !important;
         }
         .messages-overflow {
-            height: 150px;
+            height: 180px;
             overflow: scroll;
+            max-width: 96%;
         }
+        /*.react-tabs__tab-list {*/
+        /*    max-height: 75px !important;*/
+        /*    white-space: nowrap;*/
+        /*    overflow-x: scroll;*/
+        /*}*/
+        .react-tabs__tab-list:hover {
+            overflow-x: scroll !important;
+        }
+
         .react-tabs__tab-list {
             max-height: 75px !important;
+            white-space: nowrap;
+            overflow: hidden;
+        }
+
+        .react-tabs__tab-panel {
+            background: rgba(61, 60, 64, 0.05) !important;
+        }
+
+        .single-message {
+            /*overflow: hidden;*/
+            /*white-space: nowrap;*/
+            /*text-overflow: clip;*/
+            width: 100%;
+            margin-bottom: 0 !important;
         }
 
     </style>
