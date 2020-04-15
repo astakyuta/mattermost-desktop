@@ -1096,7 +1096,7 @@ function initializeChatWidget() {
   console.log('comes under initializeChatWidget');
   if (!trayIcon) return;
   if (widget) return;
-  mainWindow.openDevTools(); // for consoles view in widget
+  // mainWindow.openDevTools(); // for consoles view in widget
 
   console.log('initializing widget');
   console.log(process.cwd());
@@ -1133,9 +1133,9 @@ function initializeChatWidget() {
   });
   widget.on('after-show', () => {
     console.log('widget is shown');
-    // if (!isReplyPending) {
-    //   widget.hideWindow()
-    // }
+    if (!isReplyPending) {
+      widget.hideWindow()
+    }
   });
   widget.on('hide', () => {
     console.log('widget is being hidden');
