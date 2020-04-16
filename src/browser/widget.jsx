@@ -216,11 +216,13 @@ class WidgetContainer extends React.Component {
         const {message, reply, receivedMessages, replyDetails} = this.state;
         // const { receivedMessages } = this.state.receivedMessages;
         // const { newRenderedessages } = this.receivedMessagesDetails;
+
+        if (receivedMessages.length < 1 || message.length < 1) {
+            return null;
+        }
         console.log('message is: ', message);
         console.log('receivedMessages inside render: ', receivedMessages);
-        // if (!message) {
-        //     return null;
-        // }
+
 
         return (
 

@@ -1123,10 +1123,12 @@ function initializeChatWidget() {
   });
   widget.on('ready', () => {
     console.log('widget is created');
+    widget.hideWindow();
   });
   widget.on('after-create-window', () => {
     console.log('widget window is created');
-    // widget.window.openDevTools(); // for consoles view in widget
+    widget.hideWindow();
+    widget.window.openDevTools(); // for consoles view in widget
   });
   widget.on('show', () => {
     console.log('widget is shown');
@@ -1134,7 +1136,7 @@ function initializeChatWidget() {
   widget.on('after-show', () => {
     console.log('widget is shown');
     if (!isReplyPending) {
-      widget.hideWindow()
+      widget.hideWindow();
     }
   });
   widget.on('hide', () => {
