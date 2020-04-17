@@ -245,10 +245,11 @@ function initializeInterCommunicationEventListeners() {
     console.log('new message', payload);
     console.log('event is: ', event);
     console.log('widget is: ', widget);
-    isReplyPending = true;
-    // if (widget) {
-    if (widget && typeof payload.message.channel !== 'undefined') { // payload.message.channel && typeof payload.message.channel !== 'undefined' && payload.message.requireInteraction === 'false'
+
+    if (widget && typeof payload.message.channel !== 'undefined' && payload.message.body !== '') { // payload.message.channel && typeof payload.message.channel !== 'undefined' && payload.message.requireInteraction === 'false'
+      isReplyPending = true;
       widget.showWindow();
+
       if (ipcWidget) {
         ipcWidget.send('new-message', {
           message: payload.message,
@@ -1123,12 +1124,10 @@ function initializeChatWidget() {
   });
   widget.on('ready', () => {
     console.log('widget is created');
-    widget.hideWindow();
   });
   widget.on('after-create-window', () => {
     console.log('widget window is created');
-    widget.hideWindow();
-    widget.window.openDevTools(); // for consoles view in widget
+    // widget.window.openDevTools(); // for consoles view in widget
   });
   widget.on('show', () => {
     console.log('widget is shown');
