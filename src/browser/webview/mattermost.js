@@ -85,7 +85,8 @@ window.addEventListener('message', ({origin, data: {type, message = {}} = {}} = 
       window.location.origin
     );
     const {title, body, channel, teamId, silent} = message;
-    ipcRenderer.sendToHost('dispatchNotification', title, body, channel, teamId, silent);
+    // the below section is used to send push notifications from desktop [Host machine]
+    // ipcRenderer.sendToHost('dispatchNotification', title, body, channel, teamId, silent);
     break;
   }
   }
