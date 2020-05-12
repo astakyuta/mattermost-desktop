@@ -68,6 +68,7 @@ window.addEventListener('message', ({origin, data: {type, message = {}} = {}} = 
   }
   case 'dispatch-notification': {
     console.log('triggering client notification');
+    console.log('dispatch notification: ', message);
     ipcRenderer.send(
       'new-message',
       {
@@ -84,7 +85,7 @@ window.addEventListener('message', ({origin, data: {type, message = {}} = {}} = 
       },
       window.location.origin
     );
-    const {title, body, channel, teamId, silent} = message;
+    const {title, body, channel, teamId, silent, notifyProps} = message;
     // the below section is used to send push notifications from desktop [Host machine]
     // ipcRenderer.sendToHost('dispatchNotification', title, body, channel, teamId, silent);
     break;

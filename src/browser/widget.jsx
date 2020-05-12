@@ -1,5 +1,6 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
+import Countdown from 'react-countdown';
 import { ipcRenderer } from 'electron';
 
 import { Tab, Tabs, TabList, TabPanel } from 'react-tabs';
@@ -29,6 +30,10 @@ class WidgetContainer extends React.Component {
         this.receivedMessagesDetails = []; // at the end of assigning value, the whole thing is submitted to receivedMessages state.
 
         this.sender = '';
+
+        this.replyDuration = '';
+
+        this.isTyping = 'False';
     }
 
     componentDidMount() {
@@ -38,13 +43,27 @@ class WidgetContainer extends React.Component {
             this.sender = payload.message.channel.display_name;
             this.messageDetails.channel_id = payload.message.channel.id;
             // this.messageDetails.user_id = payload.message.channel.teammate_id;
+            this.replyDuration = payload.message.notifyProp.auto_responder_duration;
 
 
             if(this.receivedMessagesDetails.length < 1) { // For first entry in parent array
+
+              // this.interval = setInterval(() => {
+              //   let newMessage = {
+              //     channelId: payload.message.channel.id,
+              //     message: [payload.message],
+              //     duration: this.replyDuration,
+              //   };
+              //   console.log('This will run every second!');
+              // }, 1000);
+              // return () => clearInterval(this.replyDuration);
+
                 let newMessage = {
                     channelId: payload.message.channel.id,
                     message: [payload.message],
+                    duration: this.replyDuration,
                 };
+
                 this.receivedMessagesDetails.push(newMessage);
                 console.log('1: ', this.receivedMessagesDetails);
             } else { // For all entries except the first entry in parent array
@@ -55,6 +74,7 @@ class WidgetContainer extends React.Component {
                     this.receivedMessagesDetails.find((item) => {
                         if (item.channelId === payload.message.channel.id) {
                             item.message.push(payload.message);
+                            item.duration = this.replyDuration;
                             console.log('2: ', this.receivedMessagesDetails);
                             return true;
                         }
@@ -63,6 +83,7 @@ class WidgetContainer extends React.Component {
                     let newMessage = {
                         channelId: payload.message.channel.id,
                         message: [payload.message],
+                        duration: this.replyDuration,
                     };
                     this.receivedMessagesDetails.push(newMessage);
                     console.log('3: ', this.receivedMessagesDetails);
@@ -78,6 +99,12 @@ class WidgetContainer extends React.Component {
 
             // this.setState.message.push(payload.message);
         })
+
+        setTimeout(() => {
+            this.removeAllTabs();
+        }, (this.replyDuration * 1000));
+        // return () => clearTimeout(timer);
+
     }
 
     handleExistingChannel(channelId) {
@@ -146,10 +173,59 @@ class WidgetContainer extends React.Component {
         // });
     }
 
+    removeAllTabs() { // this will automatically remove widget
+        console.log('comes under close all tabs');
+        const payload = {
+            tabCount: 1
+        };
+        ipcRenderer.send('widget-reply', payload);
+        // this.state.receivedMessages.length = 0;
+        this.setState({
+            receivedMessages: [],
+            tabIndex: 0,
+        });
+        this.receivedMessagesDetails = [];
+
+    }
+
     handleKeyDown = (event) => {
         if (event.keyCode == 13) {
             this.handleSubmit(event);
         }
+    }
+
+    checkReply = (event) => {
+        if (this.isTyping == 'True') {
+
+        }
+    }
+
+    onFocusEvent = (event) => {
+        this.isTyping = 'True';
+
+        const obj = { is_typing: 'True' };
+        let url = 'http://teamcomm.ga/api/v4/users/4bw1u1dbgibpfkwhj4qugjepmc/is_typing';
+        fetch(url, {
+            method: 'PUT', // *GET, POST, PUT, DELETE, etc.
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                // 'Authorization': token,
+                'X-Requested-With': 'XMLHttpRequest',
+            },
+            body: JSON.stringify(obj), // body data type must match "Content-Type" header
+            // body: JSON.stringify(this.messageDetails),
+        })
+        .then((response) => {
+            console.log(response);
+            // return response.json();
+        })
+        .then((data) => {
+            console.log('returned data: ', data);
+        }).catch((error) => {
+            console.error('Error:', error);
+        });
+
     }
 
     handleSubmit = (event) => {
@@ -223,6 +299,8 @@ class WidgetContainer extends React.Component {
         console.log('message is: ', message);
         console.log('receivedMessages inside render: ', receivedMessages);
 
+        const timerText = "Auto text will be sent in: ";
+
 
         return (
 
@@ -254,8 +332,21 @@ class WidgetContainer extends React.Component {
                                   })
                               }
                               </div>
+                              <div className="timer">
+                                  <span>
+                                      {timerText} <Countdown onComplete={this.removeAllTabs}
+                                                             onTick={this.checkReply}
+                                                             renderer={({ hours, minutes, seconds, completed }) => {
+                                                                 // render completed
+                                                                 if (completed || this.isTyping == 'TRUE') return <span>You are good to go!</span>;
+                                                                 // render current countdown time
+                                                                 return <span>{hours}::{minutes}::{seconds}</span>;
+                                                             }}
+                                                             date={Date.now() + (this.replyDuration*1000)} />
+                                  </span>
+                              </div>
                               <div className="reply-box">
-                                  <textarea key={key} className="replyInput" name={item.channelId} value={replyDetails.message} onChange={this.handleReply} onKeyDown={this.handleKeyDown}/>
+                                  <textarea key={key} className="replyInput" name={item.channelId} value={replyDetails.message} onChange={this.handleReply} onKeyDown={this.handleKeyDown} onFocus={this.onFocusEvent}/>
                               </div>
                           </TabPanel>);
                       })
