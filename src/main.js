@@ -1097,7 +1097,7 @@ function initializeChatWidget() {
   console.log('comes under initializeChatWidget');
   if (!trayIcon) return;
   if (widget) return;
-  mainWindow.openDevTools(); // for consoles view in widget
+  // mainWindow.openDevTools(); // for consoles view in widget
 
   console.log('initializing widget');
   console.log(process.cwd());
@@ -1112,7 +1112,7 @@ function initializeChatWidget() {
     showOnAllWorkspaces: true,
     browserWindow: {
       width: 300,
-      height: 300,
+      height: 325,
       alwaysOnTop: true,
       resizable: true,
       webPreferences: { nodeIntegration: true },
@@ -1127,7 +1127,7 @@ function initializeChatWidget() {
   });
   widget.on('after-create-window', () => {
     console.log('widget window is created');
-    widget.window.openDevTools(); // for consoles view in widget
+    // widget.window.openDevTools(); // for consoles view in widget
   });
   widget.on('show', () => {
     console.log('widget is shown');

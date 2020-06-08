@@ -2,11 +2,14 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 import Countdown from 'react-countdown';
 import { ipcRenderer } from 'electron';
+import AutoResponseTimer from './components/AutoResponseTimer.jsx';
 
 import { Tab, Tabs, TabList, TabPanel } from 'react-tabs';
 import 'react-tabs/style/react-tabs.css';
 
 class WidgetContainer extends React.Component {
+    clockRef = null;
+
     constructor(props) {
         super(props);
         this.state = {
@@ -20,6 +23,8 @@ class WidgetContainer extends React.Component {
                 message: '',
                 channel_id: '',
             }, // separately used for different channels
+            replyDuration: '',
+            showAutoResponseTimer: true,
         };
 
         this.messageDetails = { // changing with replyDetails inside state
@@ -33,7 +38,23 @@ class WidgetContainer extends React.Component {
 
         this.replyDuration = '';
 
-        this.isTyping = 'False';
+        this.LastType = '';
+
+        this.removeAllTabs = this.removeAllTabs.bind(this);
+
+        this.typeCheckTimer = this.typeCheckTimer.bind(this);
+
+        this.startTypeCheckTimer = '';
+
+        this.showAutoResponseTimer = true;
+
+        // this.forceUpdateHandler = this.forceUpdateHandler.bind(this);
+
+        this.setClockRef = this.setClockRef.bind(this);
+        this.start = this.start.bind(this);
+        this.pause = this.pause.bind(this);
+
+        this.inputRef = React.createRef();
     }
 
     componentDidMount() {
@@ -44,6 +65,10 @@ class WidgetContainer extends React.Component {
             this.messageDetails.channel_id = payload.message.channel.id;
             // this.messageDetails.user_id = payload.message.channel.teammate_id;
             this.replyDuration = payload.message.notifyProp.auto_responder_duration;
+
+            this.setState({
+                replyDuration: payload.message.notifyProp.auto_responder_duration
+            });
 
 
             if(this.receivedMessagesDetails.length < 1) { // For first entry in parent array
@@ -61,7 +86,7 @@ class WidgetContainer extends React.Component {
                 let newMessage = {
                     channelId: payload.message.channel.id,
                     message: [payload.message],
-                    duration: this.replyDuration,
+                    // duration: this.replyDuration,
                 };
 
                 this.receivedMessagesDetails.push(newMessage);
@@ -74,7 +99,7 @@ class WidgetContainer extends React.Component {
                     this.receivedMessagesDetails.find((item) => {
                         if (item.channelId === payload.message.channel.id) {
                             item.message.push(payload.message);
-                            item.duration = this.replyDuration;
+                            // item.duration = this.replyDuration;
                             console.log('2: ', this.receivedMessagesDetails);
                             return true;
                         }
@@ -83,7 +108,7 @@ class WidgetContainer extends React.Component {
                     let newMessage = {
                         channelId: payload.message.channel.id,
                         message: [payload.message],
-                        duration: this.replyDuration,
+                        // duration: this.replyDuration,
                     };
                     this.receivedMessagesDetails.push(newMessage);
                     console.log('3: ', this.receivedMessagesDetails);
@@ -100,9 +125,9 @@ class WidgetContainer extends React.Component {
             // this.setState.message.push(payload.message);
         })
 
-        setTimeout(() => {
-            this.removeAllTabs();
-        }, (this.replyDuration * 1000));
+        // setTimeout(() => {
+        //     this.removeAllTabs();
+        // }, (this.replyDuration * 1000));
         // return () => clearTimeout(timer);
 
     }
@@ -127,8 +152,13 @@ class WidgetContainer extends React.Component {
     // }
 
     handleReply = (event) => {
-        console.log('event data in handle reply: ', event);
+        clearInterval(this.startTypeCheckTimer);
+        this.startTypeCheckTimer = setInterval(this.typeCheckTimer, (5 * 1000));
+        this.LastType = this.getCurrentTimestampInSeconds();
+        console.log('new last type: ', this.LastType);
+        // console.log('event data in handle reply: ', event);
         this.setState({
+            showAutoResponseTimer: false,
             reply: event.target.value, // can be deleted after
             replyDetails: {
                 message: event.target.value,
@@ -173,59 +203,188 @@ class WidgetContainer extends React.Component {
         // });
     }
 
-    removeAllTabs() { // this will automatically remove widget
-        console.log('comes under close all tabs');
+    removeAllTabs = () => { // this will automatically remove widget
+
+        let channel_ids = [];
+        this.receivedMessagesDetails.forEach(function(message) {
+            channel_ids.push(message.channelId);
+        });
+        console.log("channel ids list in array: ", channel_ids);
+
+        // clears the TypeCheckTimer
+        clearInterval(this.startTypeCheckTimer);
+
+        // closes the widget
         const payload = {
             tabCount: 1
         };
         ipcRenderer.send('widget-reply', payload);
-        // this.state.receivedMessages.length = 0;
+
+        // Resets the messages store in widget
         this.setState({
+            reply: '',
+            replyDetails: {
+                message: '',
+                channel_id: '',
+            },
             receivedMessages: [],
             tabIndex: 0,
         });
         this.receivedMessagesDetails = [];
 
+        // Send auto responses to the unreplied messages
+        const obj = {channel_ids: channel_ids};
+        let url = 'http://teamcomm.ga/api/v4/posts/auto_response';
+        fetch(url, {
+            method: 'POST', // *GET, POST, PUT, DELETE, etc.
+            headers: {
+              'Content-Type': 'application/json',
+              'Accept': 'application/json',
+              // 'Authorization': token,
+              'X-Requested-With': 'XMLHttpRequest',
+            },
+            body: JSON.stringify(obj), // body data type must match "Content-Type" header
+            // body: JSON.stringify(this.messageDetails),
+          })
+          .then((response) => {
+            console.log(response);
+            // return response.json();
+          })
+          .then((data) => {
+            console.log('returned data: ', data);
+          }).catch((error) => {
+            console.error('Error:', error);
+        });
+
+
+
     }
 
     handleKeyDown = (event) => {
         if (event.keyCode == 13) {
+            this.setState({
+                showAutoResponseTimer: true, // this.state.replyDuration
+            });
+            // this.forceUpdateHandler();
+
+            this.start();
+            this.showAutoResponseTimer = true;
             this.handleSubmit(event);
         }
     }
 
     checkReply = (event) => {
-        if (this.isTyping == 'True') {
+        if (this.LastType == 'True') {
 
         }
     }
 
     onFocusEvent = (event) => {
-        this.isTyping = 'True';
-
-        const obj = { is_typing: 'True' };
-        let url = 'http://teamcomm.ga/api/v4/users/4bw1u1dbgibpfkwhj4qugjepmc/is_typing';
-        fetch(url, {
-            method: 'PUT', // *GET, POST, PUT, DELETE, etc.
-            headers: {
-                'Content-Type': 'application/json',
-                'Accept': 'application/json',
-                // 'Authorization': token,
-                'X-Requested-With': 'XMLHttpRequest',
-            },
-            body: JSON.stringify(obj), // body data type must match "Content-Type" header
-            // body: JSON.stringify(this.messageDetails),
-        })
-        .then((response) => {
-            console.log(response);
-            // return response.json();
-        })
-        .then((data) => {
-            console.log('returned data: ', data);
-        }).catch((error) => {
-            console.error('Error:', error);
+        this.setState({
+            showAutoResponseTimer: false, // for changing timer text in widegt view
         });
+        this.showAutoResponseTimer = false;
+        clearInterval(this.startTypeCheckTimer);
+        this.startTypeCheckTimer = setInterval(this.typeCheckTimer, (5 * 1000));
+        this.LastType = this.getCurrentTimestampInSeconds();
+        console.log("last type is seconds: ", this.LastType);
+    }
 
+    getCurrentTimestampInSeconds() {
+        return Math.floor(Date.now() / 1000);
+    }
+
+    typeCheckTimer = () =>  { // check user's last type in every 10 seconds interval
+        let currentTimestamp = this.getCurrentTimestampInSeconds();
+        if( (currentTimestamp - this.LastType) > 30) {
+            // As because the auto response timer is visible again, this should be stooped until further action taken by user
+            clearInterval(this.startTypeCheckTimer);
+            this.setState({
+                showAutoResponseTimer: true, // this.state.replyDuration
+            });
+            this.start(); // starts the auto response timer again
+            console.log('30 seconds exceeds!');
+            console.log('showAutoResponseTimer: ', this.state.showAutoResponseTimer);
+            // start the auto response timer again
+        } else {
+            console.log('30 seconds not exceeded yet!');
+            // nothing here
+        }
+    }
+
+    // forceUpdateHandler(){
+    //     this.forceUpdate();
+    // };
+
+
+    // code for is_typing API call
+    // onFocusEvent = (event) => {
+    //     this.LastType = 'True';
+    //
+    //     const obj = { is_typing: 'True' };
+    //     let url = 'http://teamcomm.ga/api/v4/users/4bw1u1dbgibpfkwhj4qugjepmc/is_typing';
+    //     fetch(url, {
+    //         method: 'PUT', // *GET, POST, PUT, DELETE, etc.
+    //         headers: {
+    //             'Content-Type': 'application/json',
+    //             'Accept': 'application/json',
+    //             'X-Requested-With': 'XMLHttpRequest',
+    //         },
+    //         body: JSON.stringify(obj), // body data type must match "Content-Type" header
+    //     })
+    //     .then((response) => {
+    //         console.log(response);
+    //     })
+    //     .then((data) => {
+    //         console.log('returned data: ', data);
+    //     }).catch((error) => {
+    //         console.error('Error:', error);
+    //     });
+    //
+    // }
+
+
+    // code to send auto response
+    // onFocusEvent = (event) => {
+    //
+    //   const obj = { channel_ids: ['919tqmpbqif1iq16n5kzu45ufo', '19bro6rt73rjid411ap7yaeuuo'] };
+    //   let url = 'http://teamcomm.ga/api/v4/posts/auto_response';
+    //   fetch(url, {
+    //     method: 'POST', // *GET, POST, PUT, DELETE, etc.
+    //     headers: {
+    //       'Content-Type': 'application/json',
+    //       'Accept': 'application/json',
+    //       // 'Authorization': token,
+    //       'X-Requested-With': 'XMLHttpRequest',
+    //     },
+    //     body: JSON.stringify(obj), // body data type must match "Content-Type" header
+    //     // body: JSON.stringify(this.messageDetails),
+    //   })
+    //   .then((response) => {
+    //     console.log(response);
+    //     // return response.json();
+    //   })
+    //   .then((data) => {
+    //     console.log('returned data: ', data);
+    //   }).catch((error) => {
+    //     console.error('Error:', error);
+    //   });
+    //
+    // }
+
+
+    start() {
+        this.clockRef.start();
+    }
+
+    pause() {
+        this.clockRef.pause();
+    }
+
+    setClockRef(ref) {
+        // When the `Clock` (and subsequently `Countdown` mounts
+        // this will give us access to the API
+        this.clockRef = ref;
     }
 
     handleSubmit = (event) => {
@@ -239,6 +398,11 @@ class WidgetContainer extends React.Component {
         //     tabcount: tabcount
         // };
 
+        if(tabCount == 1) {
+            // clearing the typechecker interval because all messages have been replied
+            clearInterval(this.startTypeCheckTimer);
+        }
+
         const payload = {reply, tabCount};
 
         // const { tabCount } = this.state.receivedMessages.length;
@@ -246,10 +410,9 @@ class WidgetContainer extends React.Component {
 
         console.log('sending reply', payload);
 
-
-
         ipcRenderer.send('widget-reply', payload);
 
+        this.inputRef.current.blur(); // this helps focus out from reply's textarea
 
         this.setState({ // resets the reply's textarea
             reply: '',
@@ -299,7 +462,7 @@ class WidgetContainer extends React.Component {
         console.log('message is: ', message);
         console.log('receivedMessages inside render: ', receivedMessages);
 
-        const timerText = "Auto text will be sent in: ";
+
 
 
         return (
@@ -334,19 +497,24 @@ class WidgetContainer extends React.Component {
                               </div>
                               <div className="timer">
                                   <span>
-                                      {timerText} <Countdown onComplete={this.removeAllTabs}
-                                                             onTick={this.checkReply}
-                                                             renderer={({ hours, minutes, seconds, completed }) => {
-                                                                 // render completed
-                                                                 if (completed || this.isTyping == 'TRUE') return <span>You are good to go!</span>;
-                                                                 // render current countdown time
-                                                                 return <span>{hours}::{minutes}::{seconds}</span>;
-                                                             }}
-                                                             date={Date.now() + (this.replyDuration*1000)} />
+                                      {/*{timerText} <Countdown onComplete={this.removeAllTabs}*/}
+                                      {/*                       onTick={this.checkReply}*/}
+                                      {/*                       autoStart={true}*/}
+                                      {/*                       renderer={({ hours, minutes, seconds, completed }) => {*/}
+                                      {/*                           // render completed*/}
+                                      {/*                           // if (completed || this.LastType == 'TRUE') return <span>You are good to go!</span>;*/}
+                                      {/*                          if(this.showAutoResponseTimer == false) return <span>Timer disabled!</span>;*/}
+
+                                      {/*                           // render current countdown time*/}
+                                      {/*                           return <span>{hours}::{minutes}::{seconds}</span>;*/}
+                                      {/*                       }}*/}
+                                      {/*                       date={Date.now() + (this.replyDuration*1000)} />*/}
+
+                                      <AutoResponseTimer refCallback={this.setClockRef} time={this.replyDuration} onComplete={this.removeAllTabs} showAutoResponseTimer={this.state.showAutoResponseTimer}/>
                                   </span>
                               </div>
                               <div className="reply-box">
-                                  <textarea key={key} className="replyInput" name={item.channelId} value={replyDetails.message} onChange={this.handleReply} onKeyDown={this.handleKeyDown} onFocus={this.onFocusEvent}/>
+                                  <textarea key={key} ref={this.inputRef} className="replyInput" name={item.channelId} value={replyDetails.message} onChange={this.handleReply} onKeyDown={this.handleKeyDown} onFocus={this.onFocusEvent}/>
                               </div>
                           </TabPanel>);
                       })
