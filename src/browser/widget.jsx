@@ -1,8 +1,8 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
-import Countdown from 'react-countdown';
+// import Countdown, {zeroPad} from 'react-countdown';
 import { ipcRenderer } from 'electron';
-import AutoResponseTimer from './components/AutoResponseTimer.jsx';
+// import AutoResponseTimer from './components/AutoResponseTimer.jsx';
 
 import { Tab, Tabs, TabList, TabPanel } from 'react-tabs';
 import 'react-tabs/style/react-tabs.css';
@@ -25,6 +25,9 @@ class WidgetContainer extends React.Component {
             }, // separately used for different channels
             replyDuration: '',
             showAutoResponseTimer: true,
+            currentAutoResponseTimerTime: 0,
+            visibleAutoResponderTimerTime: '',
+            visibleTabname: '',
         };
 
         this.messageDetails = { // changing with replyDetails inside state
@@ -46,13 +49,15 @@ class WidgetContainer extends React.Component {
 
         this.startTypeCheckTimer = '';
 
-        this.showAutoResponseTimer = true;
 
-        // this.forceUpdateHandler = this.forceUpdateHandler.bind(this);
 
-        this.setClockRef = this.setClockRef.bind(this);
-        this.start = this.start.bind(this);
-        this.pause = this.pause.bind(this);
+        this.autoResponseTimer = this.autoResponseTimer.bind(this);
+
+        // this.startAutoResponseTimer = '';
+
+        this.startAutoResponseTimer = this.startAutoResponseTimer.bind(this);
+
+        this.newAutoResponseTimer = '';
 
         this.inputRef = React.createRef();
     }
@@ -67,8 +72,11 @@ class WidgetContainer extends React.Component {
             this.replyDuration = payload.message.notifyProp.auto_responder_duration;
 
             this.setState({
-                replyDuration: payload.message.notifyProp.auto_responder_duration
+                replyDuration: payload.message.notifyProp.auto_responder_duration,
+                // visibleAutoResponderTimerTime: payload.message.notifyProp.auto_responder_duration,
             });
+
+            // this.startAutoResponseTimer = setInterval(this.autoResponseTimer, 1000);
 
 
             if(this.receivedMessagesDetails.length < 1) { // For first entry in parent array
@@ -90,21 +98,33 @@ class WidgetContainer extends React.Component {
                 };
 
                 this.receivedMessagesDetails.push(newMessage);
+                this.setState({
+                    visibleAutoResponderTimerTime: payload.message.notifyProp.auto_responder_duration,
+                    visibleTabname: payload.message.channel.display_name,
+                });
+
+                // this.startAutoResponseTimer = setInterval(this.autoResponseTimer, 1000);
+                this.startAutoResponseTimer();
                 console.log('1: ', this.receivedMessagesDetails);
             } else { // For all entries except the first entry in parent array
-
                 const channelExistance = this.handleExistingChannel(payload.message.channel.id);
 
                 if(channelExistance.length > 0) { // If channel already present inside received message's array, add the message data into specific array
                     this.receivedMessagesDetails.find((item) => {
                         if (item.channelId === payload.message.channel.id) {
                             item.message.push(payload.message);
+                            if(this.state.visibleTabname === item.message[0].channel.display_name) {
+                                this.clearAutoResponseTimer();
+                                this.startAutoResponseTimer();
+                            }
+
                             // item.duration = this.replyDuration;
                             console.log('2: ', this.receivedMessagesDetails);
                             return true;
                         }
                     });
                 } else { // If channel not found inside received message's array, add a new message object with new channelId in parent array
+                    // this.inputRef.current.blur();
                     let newMessage = {
                         channelId: payload.message.channel.id,
                         message: [payload.message],
@@ -153,12 +173,12 @@ class WidgetContainer extends React.Component {
 
     handleReply = (event) => {
         clearInterval(this.startTypeCheckTimer);
+        this.clearAutoResponseTimer();
         this.startTypeCheckTimer = setInterval(this.typeCheckTimer, (5 * 1000));
         this.LastType = this.getCurrentTimestampInSeconds();
         console.log('new last type: ', this.LastType);
         // console.log('event data in handle reply: ', event);
         this.setState({
-            showAutoResponseTimer: false,
             reply: event.target.value, // can be deleted after
             replyDetails: {
                 message: event.target.value,
@@ -191,6 +211,7 @@ class WidgetContainer extends React.Component {
         this.setState({
             receivedMessages: array,
             tabIndex: 0,
+            visibleTabname: msgDetailsArr[0].message[0].channel.display_name,
         });
 
         console.log('received messages after setting after slice: ', this.state.receivedMessages);
@@ -206,31 +227,61 @@ class WidgetContainer extends React.Component {
     removeAllTabs = () => { // this will automatically remove widget
 
         let channel_ids = [];
-        this.receivedMessagesDetails.forEach(function(message) {
-            channel_ids.push(message.channelId);
-        });
-        console.log("channel ids list in array: ", channel_ids);
+        channel_ids.push(this.receivedMessagesDetails[0].channelId);
 
-        // clears the TypeCheckTimer
-        clearInterval(this.startTypeCheckTimer);
+        // // fetching list of channels that are not replied
+        // this.receivedMessagesDetails.forEach(function(message) {
+        //     channel_ids.push(message.channelId);
+        // });
+        // console.log("channel ids list in array: ", channel_ids);
 
-        // closes the widget
-        const payload = {
-            tabCount: 1
-        };
-        ipcRenderer.send('widget-reply', payload);
+        // // clears the TypeCheckTimer
+        // clearInterval(this.startTypeCheckTimer);
+        //
+        // // closes the widget
+        // const payload = {
+        //     tabCount: 1
+        // };
+        // ipcRenderer.send('widget-reply', payload);
+        //
+        // // Resets the messages store in widget
+        // this.setState({
+        //     reply: '',
+        //     replyDetails: {
+        //         message: '',
+        //         channel_id: '',
+        //     },
+        //     receivedMessages: [],
+        //     tabIndex: 0,
+        // });
+        // this.receivedMessagesDetails = [];
 
-        // Resets the messages store in widget
-        this.setState({
+
+        this.inputRef.current.blur(); // this helps focus out from reply's textarea
+
+        this.setState({ // resets the reply's textarea
             reply: '',
             replyDetails: {
                 message: '',
                 channel_id: '',
             },
-            receivedMessages: [],
-            tabIndex: 0,
         });
-        this.receivedMessagesDetails = [];
+
+        const tabCount = this.state.receivedMessages.length;
+        const payload = {tabCount};
+        ipcRenderer.send('widget-reply', payload);
+
+
+        if(tabCount == 1) {
+            // clearing the typechecker interval because all messages have been replied
+            clearInterval(this.startTypeCheckTimer);
+            this.clearAutoResponseTimer();
+        } else if(tabCount > 1) {
+            this.clearAutoResponseTimer();
+            this.startAutoResponseTimer();
+        }
+
+
 
         // Send auto responses to the unreplied messages
         const obj = {channel_ids: channel_ids};
@@ -252,9 +303,12 @@ class WidgetContainer extends React.Component {
           })
           .then((data) => {
             console.log('returned data: ', data);
+            // this.removeTab(this.state.tabIndex);
           }).catch((error) => {
             console.error('Error:', error);
         });
+
+        this.removeTab(this.state.tabIndex);
 
 
 
@@ -262,13 +316,6 @@ class WidgetContainer extends React.Component {
 
     handleKeyDown = (event) => {
         if (event.keyCode == 13) {
-            this.setState({
-                showAutoResponseTimer: true, // this.state.replyDuration
-            });
-            // this.forceUpdateHandler();
-
-            this.start();
-            this.showAutoResponseTimer = true;
             this.handleSubmit(event);
         }
     }
@@ -280,14 +327,16 @@ class WidgetContainer extends React.Component {
     }
 
     onFocusEvent = (event) => {
-        this.setState({
-            showAutoResponseTimer: false, // for changing timer text in widegt view
-        });
-        this.showAutoResponseTimer = false;
-        clearInterval(this.startTypeCheckTimer);
-        this.startTypeCheckTimer = setInterval(this.typeCheckTimer, (5 * 1000));
-        this.LastType = this.getCurrentTimestampInSeconds();
-        console.log("last type is seconds: ", this.LastType);
+
+        // if ( document.activeElement === ReactDOM.findDOMNode(this.refs.inputRef) ) {
+        //     return;
+        // }
+
+        // this.clearAutoResponseTimer();
+        // clearInterval(this.startTypeCheckTimer);
+        // this.startTypeCheckTimer = setInterval(this.typeCheckTimer, (5 * 1000));
+        // this.LastType = this.getCurrentTimestampInSeconds();
+        // console.log("last type is seconds: ", this.LastType);
     }
 
     getCurrentTimestampInSeconds() {
@@ -299,18 +348,49 @@ class WidgetContainer extends React.Component {
         if( (currentTimestamp - this.LastType) > 30) {
             // As because the auto response timer is visible again, this should be stooped until further action taken by user
             clearInterval(this.startTypeCheckTimer);
-            this.setState({
-                showAutoResponseTimer: true, // this.state.replyDuration
-            });
-            this.start(); // starts the auto response timer again
+            this.startAutoResponseTimer();
+            // this.startAutoResponseTimer = setInterval(this.autoResponseTimer, 1000);
             console.log('30 seconds exceeds!');
-            console.log('showAutoResponseTimer: ', this.state.showAutoResponseTimer);
             // start the auto response timer again
         } else {
             console.log('30 seconds not exceeded yet!');
             // nothing here
         }
     }
+
+    startAutoResponseTimer = () => {
+        this.newAutoResponseTimer = setInterval(this.autoResponseTimer, 1000);
+        this.setState({
+            showAutoResponseTimer: true
+        })
+    }
+
+    autoResponseTimer = () => {
+        console.log('replyDuration: ', this.replyDuration);
+        console.log('replyDuration: ', this.state.currentAutoResponseTimerTime);
+
+        if(this.replyDuration > this.state.currentAutoResponseTimerTime) {
+
+            this.setState({
+                visibleAutoResponderTimerTime: this.state.visibleAutoResponderTimerTime - 1,
+                currentAutoResponseTimerTime: this.state.currentAutoResponseTimerTime + 1,
+            });
+            // (this.replyDuration - this.state.currentAutoResponseTimerTime)
+        } else {
+            console.log('comes under 12 = 12');
+            this.removeAllTabs();
+        }
+    }
+
+    clearAutoResponseTimer = () => {
+        clearInterval(this.newAutoResponseTimer);
+        this.setState({
+            visibleAutoResponderTimerTime: this.replyDuration,
+            currentAutoResponseTimerTime: 0,
+            showAutoResponseTimer: false,
+        });
+    }
+
 
     // forceUpdateHandler(){
     //     this.forceUpdate();
@@ -373,19 +453,7 @@ class WidgetContainer extends React.Component {
     // }
 
 
-    start() {
-        this.clockRef.start();
-    }
 
-    pause() {
-        this.clockRef.pause();
-    }
-
-    setClockRef(ref) {
-        // When the `Clock` (and subsequently `Countdown` mounts
-        // this will give us access to the API
-        this.clockRef = ref;
-    }
 
     handleSubmit = (event) => {
         const { replyDetails } = this.state;
@@ -401,16 +469,22 @@ class WidgetContainer extends React.Component {
         if(tabCount == 1) {
             // clearing the typechecker interval because all messages have been replied
             clearInterval(this.startTypeCheckTimer);
+        } else if(tabCount > 1) {
+            this.clearAutoResponseTimer();
+            this.startAutoResponseTimer();
+            // this.startAutoResponseTimer = setInterval(this.autoResponseTimer, 1000);
         }
 
+        // This sends data to ipcRenderer from where the widget hide & show logic is being handled
         const payload = {reply, tabCount};
+        ipcRenderer.send('widget-reply', payload);
 
         // const { tabCount } = this.state.receivedMessages.length;
         // const payload = { tabCount };
 
-        console.log('sending reply', payload);
+        // console.log('sending reply', payload);
 
-        ipcRenderer.send('widget-reply', payload);
+
 
         this.inputRef.current.blur(); // this helps focus out from reply's textarea
 
@@ -425,6 +499,8 @@ class WidgetContainer extends React.Component {
         this.messageDetails.message = this.state.reply;
         console.log('message details: ', this.messageDetails);
         console.log('reply details: ', replyDetails);
+
+        this.removeTab(this.state.tabIndex);
 
         // let token = 'Bearer eeodjab9wbnyxyabdbfern7rzw';
         let url = 'http://teamcomm.ga/api/v4/posts';
@@ -445,7 +521,7 @@ class WidgetContainer extends React.Component {
         .then((data) => {
             console.log(data);
             console.log('tab index: ', this.state.tabIndex);
-            this.removeTab(this.state.tabIndex); // this.state.tabIndex
+            // this.removeTab(this.state.tabIndex); // this.state.tabIndex
         }).catch((error) => {
             console.error('Error:', error);
         });
@@ -475,48 +551,82 @@ class WidgetContainer extends React.Component {
                       {
                           receivedMessages.map((item, key) => {    // function(item) {
                               console.log(key);
-                              return <Tab key={key}> {item.message[0].channel.display_name} </Tab>;
+                              if(key == 0) {
+                                  return <Tab key={key}> {item.message[0].channel.display_name} </Tab>;
+                              } else {
+                                  return null;
+                              }
+
                           })
                       }
                   </TabList>
 
                   {
                       receivedMessages.map((item, key) => {
-                          return (
-                          <TabPanel key={key}>
-                              <div className="messages-overflow">
-                              {
-                                  item.message.map((message, index) => {
-                                      return (
-                                        <div key={index}>
-                                            <div className="message-box"><p className="single-message"> {message.body} </p></div>
-                                        </div>
-                                      );
-                                  })
-                              }
-                              </div>
-                              <div className="timer">
-                                  <span>
-                                      {/*{timerText} <Countdown onComplete={this.removeAllTabs}*/}
-                                      {/*                       onTick={this.checkReply}*/}
-                                      {/*                       autoStart={true}*/}
-                                      {/*                       renderer={({ hours, minutes, seconds, completed }) => {*/}
-                                      {/*                           // render completed*/}
-                                      {/*                           // if (completed || this.LastType == 'TRUE') return <span>You are good to go!</span>;*/}
-                                      {/*                          if(this.showAutoResponseTimer == false) return <span>Timer disabled!</span>;*/}
+                          if(key == 0 && this.state.tabIndex == 0) {
+                              return (
+                                <TabPanel key={key}>
+                                    <div className="messages-overflow">
+                                        {
+                                            item.message.map((message, index) => {
+                                                return (
+                                                  <div key={index}>
+                                                      <div className="message-box"><p
+                                                        className="single-message"> {message.body} </p></div>
+                                                  </div>
+                                                );
+                                            })
+                                        }
+                                    </div>
+                                    <div className="timer">
+                                        {
+                                            (key === 0 && this.state.showAutoResponseTimer === true) ?
 
-                                      {/*                           // render current countdown time*/}
-                                      {/*                           return <span>{hours}::{minutes}::{seconds}</span>;*/}
-                                      {/*                       }}*/}
-                                      {/*                       date={Date.now() + (this.replyDuration*1000)} />*/}
+                                                <span>
+                                                    {/*<Countdown onComplete={(this.state.showAutoResponseTimer === true) ? this.removeAllTabs : null}*/}
+                                                    {/*                   controlled={false}*/}
+                                                    {/*                   onTick={this.checkReply}*/}
+                                                    {/*                   autoStart={true}*/}
+                                                    {/*                   renderer={({ hours, minutes, seconds, completed }) => {*/}
+                                                    {/*                       // render completed*/}
+                                                    {/*                       // if (completed || this.LastType == 'TRUE') return <span>You are good to go!</span>;*/}
+                                                    {/*                      if(this.state.showAutoResponseTimer == false) return <span></span>;*/}
 
-                                      <AutoResponseTimer refCallback={this.setClockRef} time={this.replyDuration} onComplete={this.removeAllTabs} showAutoResponseTimer={this.state.showAutoResponseTimer}/>
-                                  </span>
-                              </div>
-                              <div className="reply-box">
-                                  <textarea key={key} ref={this.inputRef} className="replyInput" name={item.channelId} value={replyDetails.message} onChange={this.handleReply} onKeyDown={this.handleKeyDown} onFocus={this.onFocusEvent}/>
-                              </div>
-                          </TabPanel>);
+                                                    {/*                       // render current countdown time*/}
+                                                    {/*                       return <span>Auto text will be sent in: {zeroPad(minutes)}::{zeroPad(seconds)}</span>;*/}
+                                                    {/*                   }}*/}
+                                                    {/*                   date={Date.now() + (this.replyDuration*1000)} />*/}
+
+                                                {/*<AutoResponseTimer refCallback={this.setClockRef} time={this.replyDuration}*/}
+                                                {/*                   onComplete={this.removeAllTabs}*/}
+                                                {/*                   showAutoResponseTimer={this.state.showAutoResponseTimer}/>*/}
+
+
+
+                                                {/*<AutoResponseTimer refCallback={this.setClockRef} time={this.replyDuration}*/}
+                                                {/*onComplete={this.removeAllTabs}*/}
+                                                {/*showAutoResponseTimer={this.state.showAutoResponseTimer}/>*/}
+
+                                                    Auto reply will be sent in: {this.state.visibleAutoResponderTimerTime} second(s)
+
+                                                </span>
+
+                                            :
+                                                <span></span>
+
+                                        }
+                                    </div>
+                                    <div className="reply-box">
+                                        <textarea key={key} ref={this.inputRef} className="replyInput"
+                                                  name={item.channelId} value={replyDetails.message}
+                                                  onChange={this.handleReply} onKeyDown={this.handleKeyDown}
+                                                  autoFocus={false}/>
+
+                                    </div>
+                                </TabPanel>);
+                          } else {
+                              return null;
+                          }
                       })
                   }
 
