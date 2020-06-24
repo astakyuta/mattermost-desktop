@@ -7,6 +7,8 @@ import { ipcRenderer } from 'electron';
 import { Tab, Tabs, TabList, TabPanel } from 'react-tabs';
 import 'react-tabs/style/react-tabs.css';
 
+let sound = require('./sounds/pristine.mp3');
+
 class WidgetContainer extends React.Component {
     clockRef = null;
 
@@ -77,7 +79,9 @@ class WidgetContainer extends React.Component {
             });
 
             // this.startAutoResponseTimer = setInterval(this.autoResponseTimer, 1000);
+            // this.url = 'https://notificationsounds.com/soundfiles/d7a728a67d909e714c0774e22cb806f2/file-sounds-1150-pristine.mp3';
 
+            this.audio = new Audio(sound); //  React.createRef();
 
             if(this.receivedMessagesDetails.length < 1) { // For first entry in parent array
 
@@ -90,6 +94,8 @@ class WidgetContainer extends React.Component {
               //   console.log('This will run every second!');
               // }, 1000);
               // return () => clearInterval(this.replyDuration);
+
+                this.audio.play();
 
                 let newMessage = {
                     channelId: payload.message.channel.id,
@@ -114,6 +120,7 @@ class WidgetContainer extends React.Component {
                         if (item.channelId === payload.message.channel.id) {
                             item.message.push(payload.message);
                             if(this.state.visibleTabname === item.message[0].channel.display_name) {
+                                this.audio.play();
                                 this.clearAutoResponseTimer();
                                 this.startAutoResponseTimer();
                             }
