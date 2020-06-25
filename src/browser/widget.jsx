@@ -507,7 +507,7 @@ class WidgetContainer extends React.Component {
         console.log('message details: ', this.messageDetails);
         console.log('reply details: ', replyDetails);
 
-        this.removeTab(this.state.tabIndex);
+        // this.removeTab(this.state.tabIndex);
 
         // let token = 'Bearer eeodjab9wbnyxyabdbfern7rzw';
         let url = 'http://teamcomm.ga/api/v4/posts';
@@ -532,6 +532,8 @@ class WidgetContainer extends React.Component {
         }).catch((error) => {
             console.error('Error:', error);
         });
+
+        this.removeTab(this.state.tabIndex);
     }
 
     render() {
