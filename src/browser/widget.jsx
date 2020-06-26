@@ -62,6 +62,8 @@ class WidgetContainer extends React.Component {
         this.newAutoResponseTimer = '';
 
         this.inputRef = React.createRef();
+
+        this.responderActive = '';
     }
 
     componentDidMount() {
@@ -72,6 +74,7 @@ class WidgetContainer extends React.Component {
             this.messageDetails.channel_id = payload.message.channel.id;
             // this.messageDetails.user_id = payload.message.channel.teammate_id;
             this.replyDuration = payload.message.notifyProp.auto_responder_duration;
+            this.responderActive = payload.message.notifyProp.auto_responder_active;
 
             this.setState({
                 replyDuration: payload.message.notifyProp.auto_responder_duration,
@@ -110,7 +113,10 @@ class WidgetContainer extends React.Component {
                 });
 
                 // this.startAutoResponseTimer = setInterval(this.autoResponseTimer, 1000);
-                this.startAutoResponseTimer();
+                if(this.responderActive === "true") {
+                    this.startAutoResponseTimer();
+                }
+
                 console.log('1: ', this.receivedMessagesDetails);
             } else { // For all entries except the first entry in parent array
                 const channelExistance = this.handleExistingChannel(payload.message.channel.id);
@@ -121,8 +127,10 @@ class WidgetContainer extends React.Component {
                             item.message.push(payload.message);
                             if(this.state.visibleTabname === item.message[0].channel.display_name) {
                                 this.audio.play();
-                                this.clearAutoResponseTimer();
-                                this.startAutoResponseTimer();
+                                if(this.responderActive === "true") {
+                                    this.clearAutoResponseTimer();
+                                    this.startAutoResponseTimer();
+                                }
                             }
 
                             // item.duration = this.replyDuration;
@@ -179,10 +187,14 @@ class WidgetContainer extends React.Component {
     // }
 
     handleReply = (event) => {
-        clearInterval(this.startTypeCheckTimer);
-        this.clearAutoResponseTimer();
-        this.startTypeCheckTimer = setInterval(this.typeCheckTimer, (5 * 1000));
-        this.LastType = this.getCurrentTimestampInSeconds();
+
+        if(this.responderActive === "true") {
+            clearInterval(this.startTypeCheckTimer);
+            this.clearAutoResponseTimer();
+            this.startTypeCheckTimer = setInterval(this.typeCheckTimer, (5 * 1000));
+            this.LastType = this.getCurrentTimestampInSeconds();
+        }
+
         console.log('new last type: ', this.LastType);
         // console.log('event data in handle reply: ', event);
         this.setState({
@@ -285,7 +297,9 @@ class WidgetContainer extends React.Component {
             this.clearAutoResponseTimer();
         } else if(tabCount > 1) {
             this.clearAutoResponseTimer();
-            this.startAutoResponseTimer();
+            if(this.responderActive === "true") {
+                this.startAutoResponseTimer();
+            }
         }
 
 
@@ -355,7 +369,9 @@ class WidgetContainer extends React.Component {
         if( (currentTimestamp - this.LastType) > 30) {
             // As because the auto response timer is visible again, this should be stooped until further action taken by user
             clearInterval(this.startTypeCheckTimer);
-            this.startAutoResponseTimer();
+            if(this.responderActive === "true") {
+                this.startAutoResponseTimer();
+            }
             // this.startAutoResponseTimer = setInterval(this.autoResponseTimer, 1000);
             console.log('30 seconds exceeds!');
             // start the auto response timer again
@@ -478,7 +494,9 @@ class WidgetContainer extends React.Component {
             clearInterval(this.startTypeCheckTimer);
         } else if(tabCount > 1) {
             this.clearAutoResponseTimer();
-            this.startAutoResponseTimer();
+            if(this.responderActive === "true") {
+                this.startAutoResponseTimer();
+            }
             // this.startAutoResponseTimer = setInterval(this.autoResponseTimer, 1000);
         }
 
@@ -589,7 +607,7 @@ class WidgetContainer extends React.Component {
                                     </div>
                                     <div className="timer">
                                         {
-                                            (key === 0 && this.state.showAutoResponseTimer === true) ?
+                                            (key === 0 && this.state.showAutoResponseTimer === true && this.responderActive === "true") ?
 
                                                 <span>
                                                     {/*<Countdown onComplete={(this.state.showAutoResponseTimer === true) ? this.removeAllTabs : null}*/}
