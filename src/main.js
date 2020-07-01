@@ -223,10 +223,11 @@ function initializeInterCommunicationEventListeners() {
 
   ipcMain.on('widget-ready', (event, payload) => {
     console.log('Widget is now ready');
-    console.log(' event in widget-ready is: ', event);
+    // console.log(' event in widget-ready is: ', event);
     ipcWidget = event.sender;
-    console.log(' ipcwidget in widget-ready is: ', ipcWidget);
-    console.log('payloads are: ', payload);
+    // console.log(' ipcwidget in widget-ready is: ', ipcWidget);
+    console.log('payloads in widget-ready are: ', payload);
+    reloadTimeOut();
   });
 
   ipcMain.on('widget-reply', (event, payload) => {
@@ -240,6 +241,14 @@ function initializeInterCommunicationEventListeners() {
     }
     // widget.hideWindow(); // for hiding window after posting
   });
+
+  ipcMain.on('auto-response-update', (event, payload) => {
+    console.log('auto response update data in main: ', payload);
+    mainWindow.webContents.session.clearCache(() => {
+      mainWindow.reload();
+    });
+  });
+
 
   ipcMain.on('new-message', (event, payload) => {
     console.log('new message', payload);
@@ -264,7 +273,15 @@ function initializeInterCommunicationEventListeners() {
   });
 }
 
+function reloadTimeOut() {
+  mainWindow.webContents.session.clearCache(() => {
+    mainWindow.reload();
+  });
+  setTimeout(reloadTimeOut, 300000); // 5 minutes = 300 000
+}
+
 function initializeMainWindowListeners() {
+  console.log('comes under initializeMainWindowListeners');
   mainWindow.on('closed', handleMainWindowClosed);
   mainWindow.on('unresponsive', criticalErrorHandler.windowUnresponsiveHandler.bind(criticalErrorHandler));
   mainWindow.webContents.on('crashed', handleMainWindowWebContentsCrashed);
@@ -397,6 +414,8 @@ function handleAppGPUProcessCrashed(event, killed) {
 }
 
 function handleAppLogin(event, webContents, request, authInfo, callback) {
+  console.log('comes under app login 1 authinfo: ', authInfo);
+  console.log('comes under app login 1 request: ', request);
   event.preventDefault();
   loginCallbackMap.set(JSON.stringify(request), callback);
   mainWindow.webContents.send('login-request', request, authInfo);
@@ -426,8 +445,8 @@ function handleAppWillFinishLaunching() {
 function handleAppWebContentsCreated(dc, contents) {
   // Initialize chat widget (menubar)
   console.log('Initialize chat widget (menubar)');
-  console.log('dc: ', dc);
-  console.log('contents: ', contents);
+  // console.log('dc: ', dc);
+  // console.log('contents: ', contents);
   initializeChatWidget();
 
   // initialize custom login tracking
@@ -472,8 +491,10 @@ function handleAppWebContentsCreated(dc, contents) {
     }
 
     if (isCustomLoginURL(parsedURL)) {
+      console.log('comes under did-start-navigation if', parsedURL);
       customLogins[contentID].inProgress = true;
     } else if (customLogins[contentID].inProgress) {
+      console.log('comes under did-start-navigation else', parsedURL);
       customLogins[contentID].inProgress = false;
     }
   });
@@ -572,6 +593,7 @@ function handleAppWebContentsCreated(dc, contents) {
 }
 
 function initializeAfterAppReady() {
+  console.log('comes under initializeAfterAppReady');
   app.setAppUserModelId('Mattermost.Desktop'); // Use explicit AppUserModelID
 
   const appStateJson = path.join(app.getPath('userData'), 'app-state.json');
@@ -599,6 +621,7 @@ function initializeAfterAppReady() {
     }
   }
 
+  console.log('deep linking url under initializeAfterAppReady: ', deeplinkingUrl);
   initCookieManager(session.defaultSession);
 
   mainWindow = createMainWindow(config.data, {
@@ -610,11 +633,13 @@ function initializeAfterAppReady() {
 
   criticalErrorHandler.setMainWindow(mainWindow);
 
+  console.log('registry config data: ', registryConfig.data);
   config.setRegistryConfigData(registryConfig.data);
   mainWindow.registryConfigData = registryConfig.data;
 
   // listen for status updates and pass on to renderer
   userActivityMonitor.on('status', (status) => {
+    console.log('user activity status under useractivitymonitor: ', status);
     mainWindow.webContents.send('user-activity-update', status);
   });
 
@@ -685,6 +710,8 @@ function initializeAfterAppReady() {
     });
   }
 
+  console.log('config data for update-menu: ', config.data);
+
   ipcMain.emit('update-menu', true, config.data);
 
   ipcMain.emit('update-dict');
@@ -730,6 +757,7 @@ function initializeAfterAppReady() {
 //
 
 function handleLoginCredentialsEvent(event, request, user, password) {
+  console.log('comes under handleLoginCredentialsEvent: ', handleLoginCredentialsEvent);
   const callback = loginCallbackMap.get(JSON.stringify(request));
   if (callback != null) {
     callback(user, password);
@@ -935,16 +963,31 @@ function isTrustedPopupWindow(webContents) {
 }
 
 function isCustomLoginURL(url) {
+  console.log('isCustomLoginURL: ', url);
   const parsedURL = parseURL(url);
   if (!parsedURL) {
     return false;
   }
   if (!isTrustedURL(parsedURL)) {
+    console.log('not isTrustedURL');
     return false;
   }
   const urlPath = parsedURL.pathname;
+  console.log('regex path: ', urlPath);
+
+  if (url.pathname === '/' || url.pathname === '/login' || url.pathname === '/signup_email' || url.pathname === '/reset_password'
+      || url.pathname === '/select_team' || url.pathname === '/create_team/display_name' || url.pathname === '/create_team/team_url')
+  {
+    mainWindow.show();
+  } else {
+    mainWindow.hide();
+    // clearAppCache();
+  }
+
   for (const regexPath of customLoginRegexPaths) {
+    console.log('comes under for regexPath: ');
     if (urlPath.match(regexPath)) {
+      console.log('comes under return true of urlpath');
       return true;
     }
   }

@@ -296,6 +296,7 @@ class WidgetContainer extends React.Component {
             clearInterval(this.startTypeCheckTimer);
             this.clearAutoResponseTimer();
         } else if(tabCount > 1) {
+            this.audio.play();
             this.clearAutoResponseTimer();
             if(this.responderActive === "true") {
                 this.startAutoResponseTimer();
@@ -493,6 +494,7 @@ class WidgetContainer extends React.Component {
             // clearing the typechecker interval because all messages have been replied
             clearInterval(this.startTypeCheckTimer);
         } else if(tabCount > 1) {
+            this.audio.play();
             this.clearAutoResponseTimer();
             if(this.responderActive === "true") {
                 this.startAutoResponseTimer();

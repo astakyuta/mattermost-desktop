@@ -9,35 +9,78 @@ function createTemplate(mainWindow, config, isDev) {
   const settingsURL = isDev ? 'http://localhost:8080/browser/settings.html' : `file://${app.getAppPath()}/browser/settings.html`;
   const teams = config.teams;
   const template = [
-    ...teams.slice(0, 9).map((team, i) => {
-      return {
-        label: team.name,
-        click: () => {
-          showOrRestore(mainWindow);
-          mainWindow.webContents.send('switch-tab', i);
+    // ...teams.slice(0, 9).map((team, i) => {
+    //   return {
+    //     label: team.name,
+    //     click: () => {
+    //       showOrRestore(mainWindow);
+    //       mainWindow.webContents.send('switch-tab', i);
+    //
+    //       if (process.platform === 'darwin') {
+    //         app.dock.show();
+    //         mainWindow.focus();
+    //       }
+    //     },
+    //   };
+    // }), {
+    //   type: 'separator',
+    // }, {
+    // {
+    //   label: process.platform === 'darwin' ? 'Preferences...' : 'Settings',
+    //   click: () => {
+    //     mainWindow.loadURL(settingsURL);
+    //     showOrRestore(mainWindow);
+    //
+    //     if (process.platform === 'darwin') {
+    //       app.dock.show();
+    //       mainWindow.focus();
+    //     }
+    //   },
+    // }, {
+    //   type: 'separator',
+    // }, {
+    {
+      label: 'Reload [For Test Only]',
+      accelerator: 'Shift+CmdOrCtrl+R',
+      click(item, focusedWindow) {
 
-          if (process.platform === 'darwin') {
-            app.dock.show();
-            mainWindow.focus();
+        mainWindow.webContents.session.clearCache(() => {
+          //Restart after cache clear
+          mainWindow.reload();
+        });
+
+        if (focusedWindow) {
+          if (focusedWindow === mainWindow) {
+            mainWindow.webContents.send('clear-cache-and-reload-tab');
+          } else {
+            focusedWindow.webContents.session.clearCache(() => {
+              focusedWindow.reload();
+            });
           }
-        },
-      };
-    }), {
-      type: 'separator',
-    }, {
-      label: process.platform === 'darwin' ? 'Preferences...' : 'Settings',
-      click: () => {
-        mainWindow.loadURL(settingsURL);
-        showOrRestore(mainWindow);
-
-        if (process.platform === 'darwin') {
-          app.dock.show();
-          mainWindow.focus();
         }
+
       },
     }, {
       type: 'separator',
     }, {
+      label: 'Logout',
+      accelerator: 'Shift+CmdOrCtrl+L',
+      click(item, focusedWindow) {
+        mainWindow.webContents.session.clearStorageData();
+        mainWindow.reload();
+        // if (focusedWindow) {
+        //   if (focusedWindow === mainWindow) {
+        //     mainWindow.webContents.send('clear-cache-and-reload-tab');
+        //   } else {
+        //     focusedWindow.webContents.session.clearCache(() => {
+        //       focusedWindow.reset();
+        //     });
+        //   }
+        // }
+      },
+    }, {
+      type: 'separator',
+    },{
       role: 'quit',
     },
   ];

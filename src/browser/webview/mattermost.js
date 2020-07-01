@@ -90,6 +90,22 @@ window.addEventListener('message', ({origin, data: {type, message = {}} = {}} = 
     // ipcRenderer.sendToHost('dispatchNotification', title, body, channel, teamId, silent);
     break;
   }
+
+  case 'auto-response-update': {
+    console.log('auto-response-update: ', message);
+    ipcRenderer.send(
+        'auto-response-update',
+        {
+          type: 'auto-response-update',
+          message: message,
+        },
+        window.location.origin
+    );
+
+    const { autoResponseData } = message;
+
+    break;
+  }
   }
 });
 
