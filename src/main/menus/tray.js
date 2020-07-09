@@ -66,8 +66,11 @@ function createTemplate(mainWindow, config, isDev) {
       label: 'Logout',
       accelerator: 'Shift+CmdOrCtrl+L',
       click(item, focusedWindow) {
+        // mainWindow.webContents.session.clearStorageData();
+        // mainWindow.reload();
         mainWindow.webContents.session.clearStorageData();
         mainWindow.reload();
+
         // if (focusedWindow) {
         //   if (focusedWindow === mainWindow) {
         //     mainWindow.webContents.send('clear-cache-and-reload-tab');

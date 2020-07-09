@@ -25,6 +25,7 @@ Notification = EnhancedNotification; // eslint-disable-line no-global-assign, no
 const config = new Config(remote.app.getPath('userData') + '/config.json', remote.getCurrentWindow().registryConfigData);
 
 const teams = config.teams;
+console.log('teams: ', teams);
 
 remote.getCurrentWindow().removeAllListeners('focus');
 
@@ -34,6 +35,7 @@ if (teams.length === 0) {
 
 const parsedURL = url.parse(window.location.href, true);
 const initialIndex = parsedURL.query.index ? parseInt(parsedURL.query.index, 10) : 0;
+console.log('initial Index: ', initialIndex);
 
 let deeplinkingUrl = null;
 if (!parsedURL.query.index || parsedURL.query.index === null) {
@@ -41,14 +43,17 @@ if (!parsedURL.query.index || parsedURL.query.index === null) {
 }
 
 config.on('update', (configData) => {
+  console.log('teams under update: ', configData);
   teams.splice(0, teams.length, ...configData.teams);
 });
 
 config.on('synchronize', () => {
+  console.log('comes under synchronize', 1);
   ipcRenderer.send('reload-config');
 });
 
 ipcRenderer.on('reload-config', () => {
+  console.log('comes under reload-config', 1);
   config.reload();
 });
 
@@ -129,6 +134,7 @@ function showBadge(sessionExpired, unreadCount, mentionCount) {
 
 function teamConfigChange(updatedTeams) {
   config.set('teams', updatedTeams);
+  console.log('config data of teams: ', updatedTeams);
 }
 
 function handleSelectSpellCheckerLocale(locale) {

@@ -62,6 +62,7 @@ export default class MattermostView extends React.Component {
   }
 
   async dispatchNotification(title, body, channel, teamId, silent) {
+    // alert('comes under dispatchNotification under mattermostView');
     const permission = await Notification.requestPermission();
     if (permission !== 'granted') {
       log.error('Notifications not granted');
@@ -75,6 +76,9 @@ export default class MattermostView extends React.Component {
       silent,
     });
     notification.onclick = () => {
+      console.log('channel in dispatch of mattermostView: ', channel);
+      console.log('team in dispatch of mattermostView: ', teamId);
+
       this.webviewRef.current.send('notification-clicked', {channel, teamId});
     };
     notification.onerror = () => {

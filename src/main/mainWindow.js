@@ -81,7 +81,8 @@ function createMainWindow(config, options) {
     // handle showing the window when not launched by auto-start
     // - when not configured to auto-start, immediately show contents and optionally maximize as needed
     if (!hideOnStartup) {
-      mainWindow.show();
+      // enable the below code if mainwindow is needed to be loaded at the start of the app launch
+      // mainWindow.show();
       if (windowIsMaximized) {
         mainWindow.maximize();
       }

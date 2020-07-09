@@ -53,59 +53,74 @@ window.addEventListener('message', ({origin, data: {type, message = {}} = {}} = 
     return;
   }
   switch (type) {
-  case 'webapp-ready': {
-    // register with the webapp to enable custom integration functionality
-    window.postMessage(
-      {
-        type: 'register-desktop',
-        message: {
-          version: remote.app.getVersion(),
-        },
-      },
-      window.location.origin
-    );
-    break;
-  }
-  case 'dispatch-notification': {
-    console.log('triggering client notification');
-    console.log('dispatch notification: ', message);
-    ipcRenderer.send(
-      'new-message',
-      {
-        type: 'new-message',
-        message: message,
-      },
-      window.location.origin
-    );
-    ipcRenderer.sendToHost(
-      'new-message-host',
-      {
-        type: 'new-message',
-        message: message,
-      },
-      window.location.origin
-    );
-    const {title, body, channel, teamId, silent, notifyProps} = message;
-    // the below section is used to send push notifications from desktop [Host machine]
-    // ipcRenderer.sendToHost('dispatchNotification', title, body, channel, teamId, silent);
-    break;
-  }
-
-  case 'auto-response-update': {
-    console.log('auto-response-update: ', message);
-    ipcRenderer.send(
-        'auto-response-update',
+    case 'webapp-ready': {
+      // register with the webapp to enable custom integration functionality
+      window.postMessage(
         {
-          type: 'auto-response-update',
+          type: 'register-desktop',
+          message: {
+            version: remote.app.getVersion(),
+          },
+        },
+        window.location.origin
+      );
+      break;
+    }
+    case 'dispatch-notification': {
+      console.log('triggering client notification');
+      console.log('dispatch notification: ', message);
+      ipcRenderer.send(
+        'new-message',
+        {
+          type: 'new-message',
           message: message,
         },
         window.location.origin
-    );
+      );
+      ipcRenderer.sendToHost(
+        'new-message-host',
+        {
+          type: 'new-message',
+          message: message,
+        },
+        window.location.origin
+      );
+      const {title, body, channel, teamId, silent, notifyProps} = message;
+      // the below section is used to send push notifications from desktop [Host machine]
+      // ipcRenderer.sendToHost('dispatchNotification', title, body, channel, teamId, silent);
+      break;
+    }
 
-    const { autoResponseData } = message;
+    case 'auto_response_update': {
+      console.log('auto_response_update: ', message);
+      ipcRenderer.send(
+          'auto-response-update',
+          {
+            type: 'auto-response-update',
+            message: message,
+          },
+          window.location.origin
+      );
 
-    break;
-  }
+      const { autoResponseData } = message;
+      break;
+    }
+
+    case 'login-status': {
+      console.log('login status under event listener: ', message);
+      ipcRenderer.send(
+          'login-status',
+          {
+            type: 'login-status',
+            message: message,
+          },
+          window.location.origin
+      );
+
+      // const { status } = message;
+      break;
+    }
+
   }
 });
 
@@ -114,6 +129,7 @@ ipcRenderer.on('new-message-host', (event, payload) => {
 });
 
 ipcRenderer.on('notification-clicked', (event, {channel, teamId}) => {
+  console.log('notification-clikced under mattermostJs: ', teamId);
   window.postMessage(
     {
       type: 'notification-clicked',

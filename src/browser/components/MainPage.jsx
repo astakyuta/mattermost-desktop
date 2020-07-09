@@ -92,6 +92,8 @@ export default class MainPage extends React.Component {
   componentDidMount() {
     const self = this;
     ipcRenderer.on('login-request', (event, request, authInfo) => {
+      console.log('authInfo login-request in mainPage: ', authInfo);
+      console.log('request login-request in mainPage: ', request);
       self.setState({
         loginRequired: true,
       });
@@ -247,6 +249,7 @@ export default class MainPage extends React.Component {
 
     ipcRenderer.on('protocol-deeplink', (event, deepLinkUrl) => {
       const parsedDeeplink = this.parseDeeplinkURL(deepLinkUrl);
+      console.log('comes under mainPage protocol-deeplink', deepLinkUrl);
       if (parsedDeeplink) {
         if (this.state.key !== parsedDeeplink.teamIndex) {
           this.handleSelect(parsedDeeplink.teamIndex);

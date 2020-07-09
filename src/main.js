@@ -70,6 +70,7 @@ let trayImages = null;
 let widget = null;
 let ipcWidget = null;
 let isReplyPending = false;
+let isLoggedIn = false; // used to determine the show Widget Window when tray button is clicked
 
 // supported custom login paths (oath, saml)
 const customLoginRegexPaths = [
@@ -227,7 +228,7 @@ function initializeInterCommunicationEventListeners() {
     ipcWidget = event.sender;
     // console.log(' ipcwidget in widget-ready is: ', ipcWidget);
     console.log('payloads in widget-ready are: ', payload);
-    reloadTimeOut();
+    // reloadTimeOut();
   });
 
   ipcMain.on('widget-reply', (event, payload) => {
@@ -247,6 +248,15 @@ function initializeInterCommunicationEventListeners() {
     mainWindow.webContents.session.clearCache(() => {
       mainWindow.reload();
     });
+  });
+
+  ipcMain.on('login-status', (event, payload) => {
+    console.log('login-status data in main: ', payload);
+    widget.hideWindow();
+    isLoggedIn = true;
+    // mainWindow.webContents.session.clearCache(() => {
+    //   mainWindow.reload();
+    // });
   });
 
 
@@ -313,6 +323,7 @@ function handleConfigSynchronize() {
 
 function handleReloadConfig() {
   config.reload();
+  console.log('config reload: ', config);
 }
 
 //
@@ -333,9 +344,9 @@ function handleAppSecondInstance(event, argv) {
   // Someone tried to run a second instance, we should focus our window.
   if (mainWindow) {
     if (mainWindow.isMinimized()) {
-      mainWindow.restore();
+      // mainWindow.restore();
     } else {
-      mainWindow.show();
+      // mainWindow.show();
     }
   }
 }
@@ -355,7 +366,7 @@ function handleAppBrowserWindowCreated(error, newWindow) {
 }
 
 function handleAppActivate() {
-  mainWindow.show();
+  // mainWindow.show();
 }
 
 function handleAppBeforeQuit() {
@@ -431,7 +442,7 @@ function handleAppWillFinishLaunching() {
         try {
           if (deeplinkingUrl) {
             mainWindow.webContents.send('protocol-deeplink', deeplinkingUrl);
-            mainWindow.show();
+            // mainWindow.show();
           }
         } catch (err) {
           setTimeout(openDeepLink, 1000);
@@ -597,6 +608,7 @@ function initializeAfterAppReady() {
   app.setAppUserModelId('Mattermost.Desktop'); // Use explicit AppUserModelID
 
   const appStateJson = path.join(app.getPath('userData'), 'app-state.json');
+  console.log('appStateJson: ', appStateJson);
   appState = new AppStateManager(appStateJson);
   if (wasUpdated(appState.lastAppVersion)) {
     clearAppCache();
@@ -623,6 +635,8 @@ function initializeAfterAppReady() {
 
   console.log('deep linking url under initializeAfterAppReady: ', deeplinkingUrl);
   initCookieManager(session.defaultSession);
+  console.log('initCookieManager session: ', session);
+  console.log('initCookieManager defaultSession: ', session.defaultSession);
 
   mainWindow = createMainWindow(config.data, {
     hideOnStartup,
@@ -661,16 +675,16 @@ function initializeAfterAppReady() {
     trayIcon.on('click', () => {
       if (!mainWindow.isVisible() || mainWindow.isMinimized()) {
         if (mainWindow.isMinimized()) {
-          mainWindow.restore();
+          // mainWindow.restore();
         } else {
-          mainWindow.show();
+          // mainWindow.show();
         }
-        mainWindow.focus();
+        // mainWindow.focus();
         if (process.platform === 'darwin') {
           app.dock.show();
         }
       } else {
-        mainWindow.focus();
+        // mainWindow.focus();
       }
     });
 
@@ -680,9 +694,9 @@ function initializeAfterAppReady() {
     trayIcon.on('balloon-click', () => {
       if (process.platform === 'win32' || process.platform === 'darwin') {
         if (mainWindow.isMinimized()) {
-          mainWindow.restore();
+          // mainWindow.restore();
         } else {
-          mainWindow.show();
+          // mainWindow.show();
         }
       }
 
@@ -690,7 +704,7 @@ function initializeAfterAppReady() {
         app.dock.show();
       }
 
-      mainWindow.focus();
+      // mainWindow.focus();
     });
   }
 
@@ -831,6 +845,7 @@ function handleUpdateUnreadEvent(event, arg) {
 }
 
 function handleUpdateMenuEvent(event, configData) {
+  // const aMenu = appMenu.createMenu(mainWindow, configData, global.isDev);
   const aMenu = appMenu.createMenu(mainWindow, configData, global.isDev);
   Menu.setApplicationMenu(aMenu);
 
@@ -976,13 +991,17 @@ function isCustomLoginURL(url) {
   console.log('regex path: ', urlPath);
 
   if (url.pathname === '/' || url.pathname === '/login' || url.pathname === '/signup_email' || url.pathname === '/reset_password'
-      || url.pathname === '/select_team' || url.pathname === '/create_team/display_name' || url.pathname === '/create_team/team_url')
-  {
-    mainWindow.show();
-  } else {
-    mainWindow.hide();
-    // clearAppCache();
+      || url.pathname === '/select_team' || url.pathname === '/create_team/display_name' || url.pathname === '/create_team/team_url') {
+    widget.showWindow();
+    if(url.pathname === '/login') {
+      isLoggedIn = false;
+    }
+    // mainWindow.show();
   }
+  // } else {
+  //   mainWindow.hide();
+  //   // clearAppCache();
+  // }
 
   for (const regexPath of customLoginRegexPaths) {
     console.log('comes under for regexPath: ');
@@ -1138,7 +1157,12 @@ function resizeScreen(screen, browserWindow) {
 
 function initializeChatWidget() {
   console.log('comes under initializeChatWidget');
-  if (!trayIcon) return;
+  // if (!trayIcon) return;
+  if(trayIcon) {
+    trayIcon.destroy();
+    // trayIcon = new Tray(trayImages.normal);
+  }
+
   if (widget) return;
   // mainWindow.openDevTools(); // for consoles view in widget
 
@@ -1151,26 +1175,37 @@ function initializeChatWidget() {
     // index: 'file://' + process.cwd() + '/src/browser/widget.html',
     // index: app.getPath('userData') + '/src/browser/widget.html',
 
-    index: 'file://' + app.getAppPath() + '/browser/widget.html',
+    index: 'file://' + app.getAppPath() + '/browser/index.html',
     showOnAllWorkspaces: true,
     browserWindow: {
-      width: 300,
-      height: 325,
+      // width: 300,
+      // height: 325,
       alwaysOnTop: true,
       resizable: true,
-      webPreferences: { nodeIntegration: true },
+      webPreferences: {
+        nodeIntegration: true,
+        contextIsolation: false,
+        webviewTag: true,
+        disableBlinkFeatures: 'Auxclick',
+      },
     },
     preloadWindow: true,
+    icon: trayImages.normal,
     tray: trayIcon,
     showDockIcon: false,  // for showing widget on all window if value is 'false'
     tooltip: 'Chat Widget',
   });
+
+  widget.window = mainWindow;
+  widget.registryConfigData = registryConfig.data;
+  console.log('widget registry data: ', registryConfig.data);
   widget.on('ready', () => {
     console.log('widget is created');
+    widget.showWindow();
   });
   widget.on('after-create-window', () => {
     console.log('widget window is created');
-    // widget.window.openDevTools(); // for consoles view in widget
+    widget.window.openDevTools(); // for consoles view in widget
   });
   widget.on('show', () => {
     console.log('widget is shown');
@@ -1178,19 +1213,28 @@ function initializeChatWidget() {
   widget.on('after-show', () => {
     console.log('widget is shown');
     if (!isReplyPending) {
-      widget.hideWindow();
+      // widget.hideWindow();
     }
   });
   widget.on('hide', () => {
+    console.log('isLoggedIn: ', isLoggedIn);
+    if(!isLoggedIn) {
+      widget.showWindow();
+    }
     console.log('widget is being hidden');
   });
   widget.on('after-hide', () => {
     console.log('widget is now hidden');
-    if (isReplyPending) {
+    if(!isLoggedIn) {
       widget.showWindow();
     }
+
+    // if (isReplyPending) {
+    //   // widget.showWindow();
+    // }
   });
   widget.on('focus-lost', () => {
     console.log('widget lost focus');
   });
+  widget.showWindow();
 }
