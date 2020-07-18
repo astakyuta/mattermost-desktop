@@ -130,6 +130,12 @@ try {
 // initialization sub functions
 //
 
+// needed to be true to start the app when machine starts
+app.setLoginItemSettings({
+  openAtLogin: true,
+})
+
+
 function initializeArgs() {
   global.args = parseArgs(process.argv.slice(1));
 
@@ -257,6 +263,13 @@ function initializeInterCommunicationEventListeners() {
     // mainWindow.webContents.session.clearCache(() => {
     //   mainWindow.reload();
     // });
+  });
+
+  ipcMain.on('quit-app', (event, payload) => {
+    console.log('quit-app data in main: ', payload);
+    app.quit();
+    // widget.webContents.session.clearStorageData();
+    // widget.reload();
   });
 
 
@@ -996,7 +1009,7 @@ function isCustomLoginURL(url) {
     if(url.pathname === '/login') {
       isLoggedIn = false;
     }
-    // mainWindow.show();
+    mainWindow.show();
   }
   // } else {
   //   mainWindow.hide();
@@ -1197,6 +1210,7 @@ function initializeChatWidget() {
   });
 
   widget.window = mainWindow;
+  mainWindow = null;
   widget.registryConfigData = registryConfig.data;
   console.log('widget registry data: ', registryConfig.data);
   widget.on('ready', () => {

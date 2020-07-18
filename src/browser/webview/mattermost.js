@@ -85,9 +85,20 @@ window.addEventListener('message', ({origin, data: {type, message = {}} = {}} = 
         },
         window.location.origin
       );
+
+
+      const payload = {
+        type: 'auto-response-alert',
+        message: {
+          notifyProps: message.notifyProp,
+          message: message,
+        }
+      };
+      window.postMessage(payload, '*');
+
       const {title, body, channel, teamId, silent, notifyProps} = message;
       // the below section is used to send push notifications from desktop [Host machine]
-      // ipcRenderer.sendToHost('dispatchNotification', title, body, channel, teamId, silent);
+      ipcRenderer.sendToHost('dispatchNotification', title, body, channel, teamId, silent);
       break;
     }
 
@@ -118,6 +129,20 @@ window.addEventListener('message', ({origin, data: {type, message = {}} = {}} = 
       );
 
       // const { status } = message;
+      break;
+    }
+
+    case 'quit-app': {
+      console.log('login status under event listener: ', message);
+      ipcRenderer.send(
+          'quit-app',
+          {
+            type: 'quit-app',
+            message: message,
+          },
+          window.location.origin
+      );
+
       break;
     }
 

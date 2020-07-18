@@ -25,21 +25,21 @@ function createTemplate(mainWindow, config, isDev) {
     // }), {
     //   type: 'separator',
     // }, {
-    // {
-    //   label: process.platform === 'darwin' ? 'Preferences...' : 'Settings',
-    //   click: () => {
-    //     mainWindow.loadURL(settingsURL);
-    //     showOrRestore(mainWindow);
-    //
-    //     if (process.platform === 'darwin') {
-    //       app.dock.show();
-    //       mainWindow.focus();
-    //     }
-    //   },
-    // }, {
+    {
+      label: process.platform === 'darwin' ? 'Preferences...' : 'Settings',
+      click: () => {
+        mainWindow.loadURL(settingsURL);
+        showOrRestore(mainWindow);
+
+        if (process.platform === 'darwin') {
+          app.dock.show();
+          mainWindow.focus();
+        }
+      },
+    }, {
     //   type: 'separator',
     // }, {
-    {
+    // {
       label: 'Reload [For Test Only]',
       accelerator: 'Shift+CmdOrCtrl+R',
       click(item, focusedWindow) {
