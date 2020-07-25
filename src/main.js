@@ -37,15 +37,15 @@ import parseArgs from './main/ParseArgs';
 // pull out required electron components like this
 // as not all components can be referenced before the app is ready
 const {
-  app,
-  Menu,
-  Tray,
-  ipcMain,
-  nativeImage,
-  dialog,
-  systemPreferences,
-  session,
-  BrowserWindow,
+    app,
+    Menu,
+    Tray,
+    ipcMain,
+    nativeImage,
+    dialog,
+    systemPreferences,
+    session,
+    BrowserWindow,
 } = electron;
 const { menubar } = require('menubar');
 const criticalErrorHandler = new CriticalErrorHandler();
@@ -71,19 +71,20 @@ let widget = null;
 let ipcWidget = null;
 let isReplyPending = false;
 let isLoggedIn = false; // used to determine the show Widget Window when tray button is clicked
+let widgetIsOpen = '';
 
 // supported custom login paths (oath, saml)
 const customLoginRegexPaths = [
-  /^\/oauth\/authorize$/i,
-  /^\/oauth\/deauthorize$/i,
-  /^\/oauth\/access_token$/i,
-  /^\/oauth\/[A-Za-z0-9]+\/complete$/i,
-  /^\/oauth\/[A-Za-z0-9]+\/login$/i,
-  /^\/oauth\/[A-Za-z0-9]+\/signup$/i,
-  /^\/api\/v3\/oauth\/[A-Za-z0-9]+\/complete$/i,
-  /^\/signup\/[A-Za-z0-9]+\/complete$/i,
-  /^\/login\/[A-Za-z0-9]+\/complete$/i,
-  /^\/login\/sso\/saml$/i,
+    /^\/oauth\/authorize$/i,
+    /^\/oauth\/deauthorize$/i,
+    /^\/oauth\/access_token$/i,
+    /^\/oauth\/[A-Za-z0-9]+\/complete$/i,
+    /^\/oauth\/[A-Za-z0-9]+\/login$/i,
+    /^\/oauth\/[A-Za-z0-9]+\/signup$/i,
+    /^\/api\/v3\/oauth\/[A-Za-z0-9]+\/complete$/i,
+    /^\/signup\/[A-Za-z0-9]+\/complete$/i,
+    /^\/login\/[A-Za-z0-9]+\/complete$/i,
+    /^\/login\/sso\/saml$/i,
 ];
 
 // tracking in progress custom logins
@@ -93,37 +94,37 @@ const customLogins = {};
  * Main entry point for the application, ensures that everything initializes in the proper order
  */
 async function initialize() {
-  process.on('uncaughtException', criticalErrorHandler.processUncaughtExceptionHandler.bind(criticalErrorHandler));
-  global.willAppQuit = false;
+    process.on('uncaughtException', criticalErrorHandler.processUncaughtExceptionHandler.bind(criticalErrorHandler));
+    global.willAppQuit = false;
 
-  // initialization that can run before the app is ready
-  initializeArgs();
-  initializeConfig();
-  initializeAppEventListeners();
-  initializeBeforeAppReady();
+    // initialization that can run before the app is ready
+    initializeArgs();
+    initializeConfig();
+    initializeAppEventListeners();
+    initializeBeforeAppReady();
 
-  // wait for registry config data to load and app ready event
-  await Promise.all([
-    registryConfig.init(),
-    app.whenReady(),
-  ]);
+    // wait for registry config data to load and app ready event
+    await Promise.all([
+        registryConfig.init(),
+        app.whenReady(),
+    ]);
 
-  // no need to continue initializing if app is quitting
-  if (global.willAppQuit) {
-    return;
-  }
+    // no need to continue initializing if app is quitting
+    if (global.willAppQuit) {
+        return;
+    }
 
-  // initialization that should run once the app is ready
-  initializeInterCommunicationEventListeners();
-  initializeAfterAppReady();
-  initializeMainWindowListeners();
+    // initialization that should run once the app is ready
+    initializeInterCommunicationEventListeners();
+    initializeAfterAppReady();
+    initializeMainWindowListeners();
 }
 
 // attempt to initialize the application
 try {
-  initialize();
+    initialize();
 } catch (error) {
-  throw new Error(`App initialization failed: ${error.toString()}`);
+    throw new Error(`App initialization failed: ${error.toString()}`);
 }
 
 //
@@ -132,182 +133,207 @@ try {
 
 // needed to be true to start the app when machine starts
 app.setLoginItemSettings({
-  openAtLogin: true,
+    openAtLogin: true,
 })
 
 
 function initializeArgs() {
-  global.args = parseArgs(process.argv.slice(1));
+    global.args = parseArgs(process.argv.slice(1));
 
-  // output the application version via cli when requested (-v or --version)
-  if (global.args.version) {
-    process.stdout.write(`v.${app.getVersion()}\n`);
-    process.exit(0); // eslint-disable-line no-process-exit
-  }
+    // output the application version via cli when requested (-v or --version)
+    if (global.args.version) {
+        process.stdout.write(`v.${app.getVersion()}\n`);
+        process.exit(0); // eslint-disable-line no-process-exit
+    }
 
-  hideOnStartup = shouldBeHiddenOnStartup(global.args);
+    hideOnStartup = shouldBeHiddenOnStartup(global.args);
 
-  global.isDev = isDev && !global.args.disableDevMode; // this doesn't seem to be right and isn't used as the single source of truth
+    global.isDev = isDev && !global.args.disableDevMode; // this doesn't seem to be right and isn't used as the single source of truth
 
-  if (global.args['data-dir']) {
-    app.setPath('userData', path.resolve(global.args['data-dir']));
-  }
+    if (global.args['data-dir']) {
+        app.setPath('userData', path.resolve(global.args['data-dir']));
+    }
 }
 
 function initializeConfig() {
-  registryConfig = new RegistryConfig();
-  config = new Config(app.getPath('userData') + '/config.json');
-  config.on('update', handleConfigUpdate);
-  config.on('synchronize', handleConfigSynchronize);
+    registryConfig = new RegistryConfig();
+    config = new Config(app.getPath('userData') + '/config.json');
+    config.on('update', handleConfigUpdate);
+    config.on('synchronize', handleConfigSynchronize);
 }
 
 function initializeAppEventListeners() {
-  app.on('second-instance', handleAppSecondInstance);
-  app.on('window-all-closed', handleAppWindowAllClosed);
-  app.on('browser-window-created', handleAppBrowserWindowCreated);
-  app.on('activate', handleAppActivate);
-  app.on('before-quit', handleAppBeforeQuit);
-  app.on('certificate-error', handleAppCertificateError);
-  app.on('gpu-process-crashed', handleAppGPUProcessCrashed);
-  app.on('login', handleAppLogin);
-  app.on('will-finish-launching', handleAppWillFinishLaunching);
-  app.on('web-contents-created', handleAppWebContentsCreated);
+    app.on('second-instance', handleAppSecondInstance);
+    app.on('window-all-closed', handleAppWindowAllClosed);
+    app.on('browser-window-created', handleAppBrowserWindowCreated);
+    app.on('activate', handleAppActivate);
+    app.on('before-quit', handleAppBeforeQuit);
+    app.on('certificate-error', handleAppCertificateError);
+    app.on('gpu-process-crashed', handleAppGPUProcessCrashed);
+    app.on('login', handleAppLogin);
+    app.on('will-finish-launching', handleAppWillFinishLaunching);
+    app.on('web-contents-created', handleAppWebContentsCreated);
 }
 
 function initializeBeforeAppReady() {
-  certificateStore = CertificateStore.load(path.resolve(app.getPath('userData'), 'certificate.json'));
+    certificateStore = CertificateStore.load(path.resolve(app.getPath('userData'), 'certificate.json'));
 
-  // prevent using a different working directory, which happens on windows running after installation.
-  const expectedPath = path.dirname(process.execPath);
-  if (process.cwd() !== expectedPath && !isDev) {
-    console.warn(`Current working directory is ${process.cwd()}, changing into ${expectedPath}`);
-    process.chdir(expectedPath);
-  }
+    // prevent using a different working directory, which happens on windows running after installation.
+    const expectedPath = path.dirname(process.execPath);
+    if (process.cwd() !== expectedPath && !isDev) {
+        console.warn(`Current working directory is ${process.cwd()}, changing into ${expectedPath}`);
+        process.chdir(expectedPath);
+    }
 
-  // can only call this before the app is ready
-  if (config.enableHardwareAcceleration === false) {
-    app.disableHardwareAcceleration();
-  }
+    // can only call this before the app is ready
+    if (config.enableHardwareAcceleration === false) {
+        app.disableHardwareAcceleration();
+    }
 
-  trayImages = getTrayImages();
+    trayImages = getTrayImages();
 
-  // If there is already an instance, quit this one
-  const gotTheLock = app.requestSingleInstanceLock();
-  if (!gotTheLock) {
-    app.exit();
-    global.willAppQuit = true;
-  }
+    // If there is already an instance, quit this one
+    const gotTheLock = app.requestSingleInstanceLock();
+    if (!gotTheLock) {
+        app.exit();
+        global.willAppQuit = true;
+    }
 
-  if (!config.spellCheckerLocale) {
-    config.set('spellCheckerLocale', SpellChecker.getSpellCheckerLocale(app.getLocale()));
-  }
+    if (!config.spellCheckerLocale) {
+        config.set('spellCheckerLocale', SpellChecker.getSpellCheckerLocale(app.getLocale()));
+    }
 
-  allowProtocolDialog.init(mainWindow);
+    allowProtocolDialog.init(mainWindow);
 
-  if (isDev) {
-    console.log('In development mode, deeplinking is disabled');
-  } else if (protocols && protocols[0] && protocols[0].schemes && protocols[0].schemes[0]) {
-    scheme = protocols[0].schemes[0];
-    app.setAsDefaultProtocolClient(scheme);
-  }
+    if (isDev) {
+        console.log('In development mode, deeplinking is disabled');
+    } else if (protocols && protocols[0] && protocols[0].schemes && protocols[0].schemes[0]) {
+        scheme = protocols[0].schemes[0];
+        app.setAsDefaultProtocolClient(scheme);
+    }
 }
 
 function initializeInterCommunicationEventListeners() {
-  ipcMain.on('reload-config', handleReloadConfig);
-  ipcMain.on('login-credentials', handleLoginCredentialsEvent);
-  ipcMain.on('download-url', handleDownloadURLEvent);
-  ipcMain.on('notified', handleNotifiedEvent);
-  ipcMain.on('update-title', handleUpdateTitleEvent);
-  ipcMain.on('update-menu', handleUpdateMenuEvent);
-  ipcMain.on('update-dict', handleUpdateDictionaryEvent);
-  ipcMain.on('checkspell', handleCheckSpellingEvent);
-  ipcMain.on('get-spelling-suggestions', handleGetSpellingSuggestionsEvent);
-  ipcMain.on('get-spellchecker-locale', handleGetSpellcheckerLocaleEvent);
-  ipcMain.on('reply-on-spellchecker-is-ready', handleReplyOnSpellcheckerIsReadyEvent);
-  if (shouldShowTrayIcon()) {
-    ipcMain.on('update-unread', handleUpdateUnreadEvent);
-  }
-
-  ipcMain.on('widget-ready', (event, payload) => {
-    console.log('Widget is now ready');
-    // console.log(' event in widget-ready is: ', event);
-    ipcWidget = event.sender;
-    // console.log(' ipcwidget in widget-ready is: ', ipcWidget);
-    console.log('payloads in widget-ready are: ', payload);
-    // reloadTimeOut();
-  });
-
-  ipcMain.on('widget-reply', (event, payload) => {
-    console.log('message submitted', payload);
-    // console.log('message submitted event data', event);
-    // console.log('main window object is: ', mainWindow);
-
-    isReplyPending = false;
-    if (payload.tabCount === 1) {
-      widget.hideWindow();
+    ipcMain.on('reload-config', handleReloadConfig);
+    ipcMain.on('login-credentials', handleLoginCredentialsEvent);
+    ipcMain.on('download-url', handleDownloadURLEvent);
+    ipcMain.on('notified', handleNotifiedEvent);
+    ipcMain.on('update-title', handleUpdateTitleEvent);
+    ipcMain.on('update-menu', handleUpdateMenuEvent);
+    ipcMain.on('update-dict', handleUpdateDictionaryEvent);
+    ipcMain.on('checkspell', handleCheckSpellingEvent);
+    ipcMain.on('get-spelling-suggestions', handleGetSpellingSuggestionsEvent);
+    ipcMain.on('get-spellchecker-locale', handleGetSpellcheckerLocaleEvent);
+    ipcMain.on('reply-on-spellchecker-is-ready', handleReplyOnSpellcheckerIsReadyEvent);
+    if (shouldShowTrayIcon()) {
+        ipcMain.on('update-unread', handleUpdateUnreadEvent);
     }
-    // widget.hideWindow(); // for hiding window after posting
-  });
 
-  ipcMain.on('auto-response-update', (event, payload) => {
-    console.log('auto response update data in main: ', payload);
-    mainWindow.webContents.session.clearCache(() => {
-      mainWindow.reload();
+    ipcMain.on('widget-ready', (event, payload) => {
+        console.log('Widget is now ready');
+        // console.log(' event in widget-ready is: ', event);
+        ipcWidget = event.sender;
+        // console.log(' ipcwidget in widget-ready is: ', ipcWidget);
+        console.log('payloads in widget-ready are: ', payload);
+        // reloadTimeOut();
     });
-  });
 
-  ipcMain.on('login-status', (event, payload) => {
-    console.log('login-status data in main: ', payload);
-    widget.hideWindow();
-    isLoggedIn = true;
-    // mainWindow.webContents.session.clearCache(() => {
-    //   mainWindow.reload();
+    ipcMain.on('widget-reply', (event, payload) => {
+        console.log('message submitted', payload);
+        // console.log('message submitted event data', event);
+        // console.log('main window object is: ', mainWindow);
+
+        isReplyPending = false;
+        if (payload.tabCount === 1) {
+            widget.hideWindow();
+        }
+        // widget.hideWindow(); // for hiding window after posting
+    });
+
+    // ipcMain.on('auto-response-update', (event, payload) => {
+    //   console.log('auto response update data in main: ', payload);
+    //   mainWindow.webContents.session.clearCache(() => {
+    //     mainWindow.reload();
+    //   });
     // });
-  });
-
-  ipcMain.on('quit-app', (event, payload) => {
-    console.log('quit-app data in main: ', payload);
-    app.quit();
-    // widget.webContents.session.clearStorageData();
-    // widget.reload();
-  });
 
 
-  ipcMain.on('new-message', (event, payload) => {
-    console.log('new message', payload);
-    console.log('event is: ', event);
-    console.log('widget is: ', widget);
 
-    if (widget && typeof payload.message.channel !== 'undefined' && payload.message.body !== '') { // payload.message.channel && typeof payload.message.channel !== 'undefined' && payload.message.requireInteraction === 'false'
-      isReplyPending = true;
-      widget.showWindow();
+    ipcMain.on('window-status-check', (event, payload) => {
+        console.log('comes under main window-status-alert: '); //, widget.getFocusedWindow());
+        console.log('payload is: ', payload);
+        // return;
 
-      if (ipcWidget) {
-        ipcWidget.send('new-message', {
-          message: payload.message,
-        });
-        console.log('Message sent to widget');
-      } else {
-        console.log('unable to send message');
-      }
-    } else {
-      console.log('widget not present');
-    }
-  });
+        // data from this event sender is being handled by ipcRenderer.on('window-status-response'...)
+        event.sender.send(
+            'window-status-response',
+            {
+                type: 'window-status-response',
+                message: {
+                    message: payload.message,
+                    windowStatus: widgetIsOpen
+                },
+            },
+        );
+
+        if(widgetIsOpen === false) {
+            widget.showWindow();
+        }
+
+    })
+
+    ipcMain.on('login-status', (event, payload) => {
+        console.log('login-status data in main: ', payload);
+        widget.hideWindow();
+        isLoggedIn = true;
+        // mainWindow.webContents.session.clearCache(() => {
+        //   mainWindow.reload();
+        // });
+    });
+
+    ipcMain.on('quit-app', (event, payload) => {
+        console.log('quit-app data in main: ', payload);
+        app.quit();
+        // widget.webContents.session.clearStorageData();
+        // widget.reload();
+    });
+
+
+    ipcMain.on('new-message', (event, payload) => {
+        console.log('new message', payload);
+        console.log('event is: ', event);
+        console.log('widget is: ', widget);
+
+        if (widget && typeof payload.message.channel !== 'undefined' && payload.message.body !== '') { // payload.message.channel && typeof payload.message.channel !== 'undefined' && payload.message.requireInteraction === 'false'
+            isReplyPending = true;
+            // widget.showWindow();
+
+            if (ipcWidget) {
+                ipcWidget.send('new-message', {
+                    message: payload.message,
+                });
+                console.log('Message sent to widget');
+            } else {
+                console.log('unable to send message');
+            }
+        } else {
+            console.log('widget not present');
+        }
+    });
 }
 
 function reloadTimeOut() {
-  mainWindow.webContents.session.clearCache(() => {
-    mainWindow.reload();
-  });
-  setTimeout(reloadTimeOut, 300000); // 5 minutes = 300 000
+    // mainWindow.webContents.session.clearCache(() => {
+    //   mainWindow.reload();
+    // });
+    setTimeout(reloadTimeOut, 300000); // 5 minutes = 300 000
 }
 
 function initializeMainWindowListeners() {
-  console.log('comes under initializeMainWindowListeners');
-  mainWindow.on('closed', handleMainWindowClosed);
-  mainWindow.on('unresponsive', criticalErrorHandler.windowUnresponsiveHandler.bind(criticalErrorHandler));
-  mainWindow.webContents.on('crashed', handleMainWindowWebContentsCrashed);
+    console.log('comes under initializeMainWindowListeners');
+    // mainWindow.on('closed', handleMainWindowClosed);
+    // mainWindow.on('unresponsive', criticalErrorHandler.windowUnresponsiveHandler.bind(criticalErrorHandler));
+    // mainWindow.webContents.on('crashed', handleMainWindowWebContentsCrashed);
 }
 
 //
@@ -315,28 +341,28 @@ function initializeMainWindowListeners() {
 //
 
 function handleConfigUpdate(configData) {
-  if (process.platform === 'win32' || process.platform === 'linux') {
-    const appLauncher = new AutoLauncher();
-    const autoStartTask = config.autostart ? appLauncher.enable() : appLauncher.disable();
-    autoStartTask.then(() => {
-      console.log('config.autostart has been configured:', config.autostart);
-    }).catch((err) => {
-      console.log('error:', err);
-    });
-  }
+    if (process.platform === 'win32' || process.platform === 'linux') {
+        const appLauncher = new AutoLauncher();
+        const autoStartTask = config.autostart ? appLauncher.enable() : appLauncher.disable();
+        autoStartTask.then(() => {
+            console.log('config.autostart has been configured:', config.autostart);
+        }).catch((err) => {
+            console.log('error:', err);
+        });
+    }
 
-  ipcMain.emit('update-menu', true, configData);
+    ipcMain.emit('update-menu', true, configData);
 }
 
 function handleConfigSynchronize() {
-  if (mainWindow) {
-    mainWindow.webContents.send('reload-config');
-  }
+    // if (mainWindow) {
+    //   mainWindow.webContents.send('reload-config');
+    // }
 }
 
 function handleReloadConfig() {
-  config.reload();
-  console.log('config reload: ', config);
+    config.reload();
+    console.log('config reload: ', config);
 }
 
 //
@@ -345,438 +371,533 @@ function handleReloadConfig() {
 
 // activate first app instance, subsequent instances will quit themselves
 function handleAppSecondInstance(event, argv) {
-  // Protocol handler for win32
-  // argv: An array of the second instance’s (command line / deep linked) arguments
-  if (process.platform === 'win32') {
-    deeplinkingUrl = getDeeplinkingURL(argv);
-    if (deeplinkingUrl) {
-      mainWindow.webContents.send('protocol-deeplink', deeplinkingUrl);
+    // Protocol handler for win32
+    // argv: An array of the second instance’s (command line / deep linked) arguments
+    if (process.platform === 'win32') {
+        deeplinkingUrl = getDeeplinkingURL(argv);
+        // if (deeplinkingUrl) {
+        //   mainWindow.webContents.send('protocol-deeplink', deeplinkingUrl);
+        // }
     }
-  }
 
-  // Someone tried to run a second instance, we should focus our window.
-  if (mainWindow) {
-    if (mainWindow.isMinimized()) {
-      // mainWindow.restore();
-    } else {
-      // mainWindow.show();
-    }
-  }
+    // Someone tried to run a second instance, we should focus our window.
+    // if (mainWindow) {
+    //   if (mainWindow.isMinimized()) {
+    //     // mainWindow.restore();
+    //   } else {
+    //     // mainWindow.show();
+    //   }
+    // }
 }
 
 function handleAppWindowAllClosed() {
-  // On OS X it is common for applications and their menu bar
-  // to stay active until the user quits explicitly with Cmd + Q
-  if (process.platform !== 'darwin') {
-    app.quit();
-  }
+    // On OS X it is common for applications and their menu bar
+    // to stay active until the user quits explicitly with Cmd + Q
+    if (process.platform !== 'darwin') {
+        app.quit();
+    }
 }
 
 function handleAppBrowserWindowCreated(error, newWindow) {
-  // Screen cannot be required before app is ready
-  const {screen} = electron;
-  resizeScreen(screen, newWindow);
+    // Screen cannot be required before app is ready
+    const {screen} = electron;
+    resizeScreen(screen, newWindow);
 }
 
 function handleAppActivate() {
-  // mainWindow.show();
+    // mainWindow.show();
 }
 
 function handleAppBeforeQuit() {
-  // Make sure tray icon gets removed if the user exits via CTRL-Q
-  if (trayIcon && process.platform === 'win32') {
-    trayIcon.destroy();
-  }
-  global.willAppQuit = true;
+    // Make sure tray icon gets removed if the user exits via CTRL-Q
+    if (trayIcon && process.platform === 'win32') {
+        trayIcon.destroy();
+    }
+    global.willAppQuit = true;
 }
 
 function handleAppCertificateError(event, webContents, url, error, certificate, callback) {
-  if (certificateStore.isTrusted(url, certificate)) {
-    event.preventDefault();
-    callback(true);
-  } else {
-    let detail = `URL: ${url}\nError: ${error}`;
-    if (certificateStore.isExisting(url)) {
-      detail = 'Certificate is different from previous one.\n\n' + detail;
-    }
-    dialog.showMessageBox(mainWindow, {
-      title: 'Certificate Error',
-      message: 'There is a configuration issue with this Mattermost server, or someone is trying to intercept your connection. You also may need to sign into the Wi-Fi you are connected to using your web browser.',
-      type: 'error',
-      buttons: [
-        'More Details',
-        'Cancel Connection',
-      ],
-      cancelId: 1,
-    }, (response) => {
-      if (response === 0) {
+    if (certificateStore.isTrusted(url, certificate)) {
+        event.preventDefault();
+        callback(true);
+    } else {
+        let detail = `URL: ${url}\nError: ${error}`;
+        if (certificateStore.isExisting(url)) {
+            detail = 'Certificate is different from previous one.\n\n' + detail;
+        }
         dialog.showMessageBox(mainWindow, {
-          title: 'Certificate Error',
-          message: `Certificate from "${certificate.issuerName}" is not trusted.`,
-          detail,
-          type: 'error',
-          buttons: [
-            'Trust Insecure Certificate',
-            'Cancel Connection',
-          ],
-          cancelId: 1,
-        }, (responseTwo) => { //eslint-disable-line max-nested-callbacks
-          if (responseTwo === 0) {
-            certificateStore.add(url, certificate);
-            certificateStore.save();
-            webContents.loadURL(url);
-          }
+            title: 'Certificate Error',
+            message: 'There is a configuration issue with this Mattermost server, or someone is trying to intercept your connection. You also may need to sign into the Wi-Fi you are connected to using your web browser.',
+            type: 'error',
+            buttons: [
+                'More Details',
+                'Cancel Connection',
+            ],
+            cancelId: 1,
+        }, (response) => {
+            if (response === 0) {
+                dialog.showMessageBox(mainWindow, {
+                    title: 'Certificate Error',
+                    message: `Certificate from "${certificate.issuerName}" is not trusted.`,
+                    detail,
+                    type: 'error',
+                    buttons: [
+                        'Trust Insecure Certificate',
+                        'Cancel Connection',
+                    ],
+                    cancelId: 1,
+                }, (responseTwo) => { //eslint-disable-line max-nested-callbacks
+                    if (responseTwo === 0) {
+                        certificateStore.add(url, certificate);
+                        certificateStore.save();
+                        webContents.loadURL(url);
+                    }
+                });
+            }
         });
-      }
-    });
-    callback(false);
-  }
+        callback(false);
+    }
 }
 
 function handleAppGPUProcessCrashed(event, killed) {
-  console.log(`The GPU process has crashed (killed = ${killed})`);
+    console.log(`The GPU process has crashed (killed = ${killed})`);
 }
 
 function handleAppLogin(event, webContents, request, authInfo, callback) {
-  console.log('comes under app login 1 authinfo: ', authInfo);
-  console.log('comes under app login 1 request: ', request);
-  event.preventDefault();
-  loginCallbackMap.set(JSON.stringify(request), callback);
-  mainWindow.webContents.send('login-request', request, authInfo);
+    console.log('comes under app login 1 authinfo: ', authInfo);
+    console.log('comes under app login 1 request: ', request);
+    event.preventDefault();
+    loginCallbackMap.set(JSON.stringify(request), callback);
+    // mainWindow.webContents.send('login-request', request, authInfo);
 }
 
 function handleAppWillFinishLaunching() {
-  // Protocol handler for osx
-  app.on('open-url', (event, url) => {
-    event.preventDefault();
-    deeplinkingUrl = getDeeplinkingURL([url]);
-    if (app.isReady()) {
-      function openDeepLink() {
-        try {
-          if (deeplinkingUrl) {
-            mainWindow.webContents.send('protocol-deeplink', deeplinkingUrl);
-            // mainWindow.show();
-          }
-        } catch (err) {
-          setTimeout(openDeepLink, 1000);
+    // Protocol handler for osx
+    app.on('open-url', (event, url) => {
+        event.preventDefault();
+        deeplinkingUrl = getDeeplinkingURL([url]);
+        if (app.isReady()) {
+            function openDeepLink() {
+                try {
+                    if (deeplinkingUrl) {
+                        // mainWindow.webContents.send('protocol-deeplink', deeplinkingUrl);
+                        // mainWindow.show();
+                    }
+                } catch (err) {
+                    setTimeout(openDeepLink, 1000);
+                }
+            }
+            openDeepLink();
         }
-      }
-      openDeepLink();
-    }
-  });
+    });
 }
 
 function handleAppWebContentsCreated(dc, contents) {
-  // Initialize chat widget (menubar)
-  console.log('Initialize chat widget (menubar)');
-  // console.log('dc: ', dc);
-  // console.log('contents: ', contents);
-  initializeChatWidget();
+    // Initialize chat widget (menubar)
+    console.log('Initialize chat widget (menubar)');
+    // console.log('dc: ', dc);
+    // console.log('contents: ', contents);
+    initializeChatWidget();
 
-  // initialize custom login tracking
-  customLogins[contents.id] = {
-    inProgress: false,
-  };
+    // initialize custom login tracking
+    customLogins[contents.id] = {
+        inProgress: false,
+    };
 
-  contents.on('will-attach-webview', (event, webPreferences) => {
-    webPreferences.nodeIntegration = false;
-    webPreferences.contextIsolation = true;
-  });
+    contents.on('will-attach-webview', (event, webPreferences) => {
+        webPreferences.nodeIntegration = false;
+        webPreferences.contextIsolation = true;
+    });
 
-  contents.on('will-navigate', (event, url) => {
-    const contentID = event.sender.id;
-    const parsedURL = parseURL(url);
+    contents.on('will-navigate', (event, url) => {
+        const contentID = event.sender.id;
+        const parsedURL = parseURL(url);
 
-    if (isTrustedURL(parsedURL) || isTrustedPopupWindow(event.sender)) {
-      return;
-    }
-    if (parsedURL.protocol === 'mailto:') {
-      return;
-    }
-    if (customLogins[contentID].inProgress) {
-      return;
-    }
-
-    log.info(`Untrusted URL blocked: ${url}`);
-    event.preventDefault();
-  });
-
-  // handle custom login requests (oath, saml):
-  // 1. are we navigating to a supported local custom login path from the `/login` page?
-  //    - indicate custom login is in progress
-  // 2. are we finished with the custom login process?
-  //    - indicate custom login is NOT in progress
-  contents.on('did-start-navigation', (event, url) => {
-    const contentID = event.sender.id;
-    const parsedURL = parseURL(url);
-
-    if (!isTrustedURL(parsedURL)) {
-      return;
-    }
-
-    if (isCustomLoginURL(parsedURL)) {
-      console.log('comes under did-start-navigation if', parsedURL);
-      customLogins[contentID].inProgress = true;
-    } else if (customLogins[contentID].inProgress) {
-      console.log('comes under did-start-navigation else', parsedURL);
-      customLogins[contentID].inProgress = false;
-    }
-  });
-
-  contents.on('new-window', (event, url) => {
-    event.preventDefault();
-    if (!isTrustedURL(url)) {
-      log.info(`Untrusted popup window blocked: ${url}`);
-      return;
-    }
-    if (popupWindow && popupWindow.getURL() === url) {
-      log.info(`Popup window already open at provided url: ${url}`);
-      return;
-    }
-    if (!popupWindow) {
-      popupWindow = new BrowserWindow({
-        parent: mainWindow,
-        show: false,
-        webPreferences: {
-          nodeIntegration: false,
-          contextIsolation: true,
-        },
-      });
-      popupWindow.once('ready-to-show', () => {
-        popupWindow.show();
-      });
-      popupWindow.once('closed', () => {
-        popupWindow = null;
-      });
-    }
-    popupWindow.loadURL(url);
-  });
-
-  // implemented to temporarily help solve for https://community-daily.mattermost.com/core/pl/b95bi44r4bbnueqzjjxsi46qiw
-  contents.on('before-input-event', (event, input) => {
-    if (!input.shift && !input.control && !input.alt && !input.meta) {
-      // hacky fix for https://mattermost.atlassian.net/browse/MM-19226
-      if ((input.key === 'Escape' || input.key === 'f') && input.type === 'keyDown') {
-        // only do this when in fullscreen on a mac
-        if (mainWindow.isFullScreen() && process.platform === 'darwin') {
-          mainWindow.webContents.send('exit-fullscreen');
+        if (isTrustedURL(parsedURL) || isTrustedPopupWindow(event.sender)) {
+            return;
         }
-      }
-      return;
-    }
+        if (parsedURL.protocol === 'mailto:') {
+            return;
+        }
+        if (customLogins[contentID].inProgress) {
+            return;
+        }
 
-    if ((process.platform === 'darwin' && !input.meta) || (process.platform !== 'darwin' && !input.control)) {
-      return;
-    }
+        log.info(`Untrusted URL blocked: ${url}`);
+        event.preventDefault();
+    });
 
-    // handle certain keyboard shortcuts manually
-    switch (input.key) { // eslint-disable-line padded-blocks
+    // handle custom login requests (oath, saml):
+    // 1. are we navigating to a supported local custom login path from the `/login` page?
+    //    - indicate custom login is in progress
+    // 2. are we finished with the custom login process?
+    //    - indicate custom login is NOT in progress
+    contents.on('did-start-navigation', (event, url) => {
+        const contentID = event.sender.id;
+        const parsedURL = parseURL(url);
 
-    // Manually handle zoom-in/out/reset keyboard shortcuts
-    // - temporary fix for https://mattermost.atlassian.net/browse/MM-19031 and https://mattermost.atlassian.net/browse/MM-19032
-    case '-':
-      mainWindow.webContents.send('zoom-out');
-      break;
-    case '=':
-      mainWindow.webContents.send('zoom-in');
-      break;
-    case '0':
-      mainWindow.webContents.send('zoom-reset');
-      break;
+        if (!isTrustedURL(parsedURL)) {
+            return;
+        }
 
-    // Manually handle undo/redo keyboard shortcuts
-    // - temporary fix for https://mattermost.atlassian.net/browse/MM-19198
-    case 'z':
-      if (input.shift) {
-        mainWindow.webContents.send('redo');
-      } else {
-        mainWindow.webContents.send('undo');
-      }
-      break;
+        if (isCustomLoginURL(parsedURL)) {
+            console.log('comes under did-start-navigation if', parsedURL);
+            customLogins[contentID].inProgress = true;
+        } else if (customLogins[contentID].inProgress) {
+            console.log('comes under did-start-navigation else', parsedURL);
+            customLogins[contentID].inProgress = false;
+        }
+    });
 
-    // Manually handle copy/cut/paste keyboard shortcuts
-    case 'c':
-      mainWindow.webContents.send('copy');
-      break;
-    case 'x':
-      mainWindow.webContents.send('cut');
-      break;
-    case 'v':
-      if (input.shift) {
-        mainWindow.webContents.send('paste-and-match');
-      } else {
-        mainWindow.webContents.send('paste');
-      }
-      break;
-    default:
-      // allows the input event to proceed if not handled by a case above
-      return;
-    }
-    event.preventDefault();
-  });
+    contents.on('new-window', (event, url) => {
+        event.preventDefault();
+        if (!isTrustedURL(url)) {
+            log.info(`Untrusted popup window blocked: ${url}`);
+            return;
+        }
+        if (popupWindow && popupWindow.getURL() === url) {
+            log.info(`Popup window already open at provided url: ${url}`);
+            return;
+        }
+        if (!popupWindow) {
+            popupWindow = new BrowserWindow({
+                parent: mainWindow,
+                show: false,
+                webPreferences: {
+                    nodeIntegration: false,
+                    contextIsolation: true,
+                },
+            });
+            popupWindow.once('ready-to-show', () => {
+                popupWindow.show();
+            });
+            popupWindow.once('closed', () => {
+                popupWindow = null;
+            });
+        }
+        popupWindow.loadURL(url);
+    });
+
+    // implemented to temporarily help solve for https://community-daily.mattermost.com/core/pl/b95bi44r4bbnueqzjjxsi46qiw
+    contents.on('before-input-event', (event, input) => {
+        if (!input.shift && !input.control && !input.alt && !input.meta) {
+            // hacky fix for https://mattermost.atlassian.net/browse/MM-19226
+            if ((input.key === 'Escape' || input.key === 'f') && input.type === 'keyDown') {
+                // only do this when in fullscreen on a mac
+                // if (mainWindow.isFullScreen() && process.platform === 'darwin') {
+                    // mainWindow.webContents.send('exit-fullscreen');
+                // }
+            }
+            return;
+        }
+
+        if ((process.platform === 'darwin' && !input.meta) || (process.platform !== 'darwin' && !input.control)) {
+            return;
+        }
+
+        // handle certain keyboard shortcuts manually
+        switch (input.key) { // eslint-disable-line padded-blocks
+
+            // Manually handle zoom-in/out/reset keyboard shortcuts
+            // - temporary fix for https://mattermost.atlassian.net/browse/MM-19031 and https://mattermost.atlassian.net/browse/MM-19032
+            case '-':
+                // mainWindow.webContents.send('zoom-out');
+                break;
+            case '=':
+                // mainWindow.webContents.send('zoom-in');
+                break;
+            case '0':
+                // mainWindow.webContents.send('zoom-reset');
+                break;
+
+            // Manually handle undo/redo keyboard shortcuts
+            // - temporary fix for https://mattermost.atlassian.net/browse/MM-19198
+            case 'z':
+                if (input.shift) {
+                    // mainWindow.webContents.send('redo');
+                } else {
+                    // mainWindow.webContents.send('undo');
+                }
+                break;
+
+            // Manually handle copy/cut/paste keyboard shortcuts
+            case 'c':
+                // mainWindow.webContents.send('copy');
+                break;
+            case 'x':
+                // mainWindow.webContents.send('cut');
+                break;
+            case 'v':
+                if (input.shift) {
+                    // mainWindow.webContents.send('paste-and-match');
+                } else {
+                    // mainWindow.webContents.send('paste');
+                }
+                break;
+            default:
+                // allows the input event to proceed if not handled by a case above
+                return;
+        }
+        event.preventDefault();
+    });
 }
 
 function initializeAfterAppReady() {
-  console.log('comes under initializeAfterAppReady');
-  app.setAppUserModelId('Mattermost.Desktop'); // Use explicit AppUserModelID
+    console.log('comes under initializeAfterAppReady');
+    app.setAppUserModelId('Mattermost.Desktop'); // Use explicit AppUserModelID
 
-  const appStateJson = path.join(app.getPath('userData'), 'app-state.json');
-  console.log('appStateJson: ', appStateJson);
-  appState = new AppStateManager(appStateJson);
-  if (wasUpdated(appState.lastAppVersion)) {
-    clearAppCache();
-  }
-  appState.lastAppVersion = app.getVersion();
-
-  if (!global.isDev) {
-    upgradeAutoLaunch();
-  }
-
-  if (global.isDev) {
-    installExtension(REACT_DEVELOPER_TOOLS).
-      then((name) => console.log(`Added Extension:  ${name}`)).
-      catch((err) => console.log('An error occurred: ', err));
-  }
-
-  // Protocol handler for win32
-  if (process.platform === 'win32') {
-    const args = process.argv.slice(1);
-    if (Array.isArray(args) && args.length > 0) {
-      deeplinkingUrl = getDeeplinkingURL(args);
+    const appStateJson = path.join(app.getPath('userData'), 'app-state.json');
+    console.log('appStateJson: ', appStateJson);
+    appState = new AppStateManager(appStateJson);
+    if (wasUpdated(appState.lastAppVersion)) {
+        clearAppCache();
     }
-  }
+    appState.lastAppVersion = app.getVersion();
 
-  console.log('deep linking url under initializeAfterAppReady: ', deeplinkingUrl);
-  initCookieManager(session.defaultSession);
-  console.log('initCookieManager session: ', session);
-  console.log('initCookieManager defaultSession: ', session.defaultSession);
+    if (!global.isDev) {
+        upgradeAutoLaunch();
+    }
 
-  mainWindow = createMainWindow(config.data, {
-    hideOnStartup,
-    trayIconShown: process.platform === 'win32' || config.showTrayIcon,
-    linuxAppIcon: path.join(assetsDir, 'appicon.png'),
-    deeplinkingUrl,
-  });
+    if (global.isDev) {
+        installExtension(REACT_DEVELOPER_TOOLS).
+        then((name) => console.log(`Added Extension:  ${name}`)).
+        catch((err) => console.log('An error occurred: ', err));
+    }
 
-  criticalErrorHandler.setMainWindow(mainWindow);
+    // Protocol handler for win32
+    if (process.platform === 'win32') {
+        const args = process.argv.slice(1);
+        if (Array.isArray(args) && args.length > 0) {
+            deeplinkingUrl = getDeeplinkingURL(args);
+        }
+    }
 
-  console.log('registry config data: ', registryConfig.data);
-  config.setRegistryConfigData(registryConfig.data);
-  mainWindow.registryConfigData = registryConfig.data;
+    console.log('deep linking url under initializeAfterAppReady: ', deeplinkingUrl);
+    initCookieManager(session.defaultSession);
+    console.log('initCookieManager session: ', session);
+    console.log('initCookieManager defaultSession: ', session.defaultSession);
 
-  // listen for status updates and pass on to renderer
-  userActivityMonitor.on('status', (status) => {
-    console.log('user activity status under useractivitymonitor: ', status);
-    mainWindow.webContents.send('user-activity-update', status);
-  });
+    // mainWindow = createMainWindow(config.data, {
+    //   hideOnStartup,
+    //   trayIconShown: process.platform === 'win32' || config.showTrayIcon,
+    //   linuxAppIcon: path.join(assetsDir, 'appicon.png'),
+    //   deeplinkingUrl,
+    // });
 
-  // start monitoring user activity (needs to be started after the app is ready)
-  userActivityMonitor.startMonitoring();
+    widget = menubar({
 
-  if (shouldShowTrayIcon()) {
-    // set up tray icon
-    trayIcon = new Tray(trayImages.normal);
+        index: 'file://' + app.getAppPath() + '/browser/index.html',
+
+        showOnAllWorkspaces: true,
+        // browserWindow: createMainWindow(config.data, {
+        //     hideOnStartup,
+        //     trayIconShown: process.platform === 'win32' || config.showTrayIcon,
+        //     linuxAppIcon: path.join(assetsDir, 'appicon.png'),
+        //     deeplinkingUrl,
+        // }),
+        browserWindow: {
+            // width: 300,
+            // height: 325,
+            alwaysOnTop: true,
+            resizable: true,
+            webPreferences: {
+                nodeIntegration: true,
+                contextIsolation: false,
+                webviewTag: true,
+                disableBlinkFeatures: 'Auxclick',
+            },
+        },
+        preloadWindow: true,
+        icon: trayImages.normal,
+        tray: trayIcon,
+        // showDockIcon: false,  // for showing widget on all window if value is 'false'
+        tooltip: 'Chat Widget',
+    });
+
+    // widget.window = createMainWindow(config.data, {
+    //     hideOnStartup,
+    //     trayIconShown: process.platform === 'win32' || config.showTrayIcon,
+    //     linuxAppIcon: path.join(assetsDir, 'appicon.png'),
+    //     deeplinkingUrl,
+    // });
+
+    // mainWindow = widget.window;
+
+
+    widget.on('ready', () => {
+        console.log('widget is created');
+        widget.showWindow();
+    });
+    widget.on('after-create-window', () => {
+        console.log('widget window is created');
+        // widget.window.openDevTools(); // for consoles view in widget
+    });
+    widget.on('show', () => {
+        console.log('widget is shown');
+        widgetIsOpen = true;
+        console.log('widgetIsOpen show: ', widgetIsOpen);
+    });
+    widget.on('after-show', () => {
+        console.log('widget is shown');
+        widgetIsOpen = true;
+        console.log('widgetIsOpen after-show: ', widgetIsOpen);
+        // if (!isReplyPending) {
+        //   // widget.hideWindow();
+        // }
+    });
+    widget.on('hide', () => {
+        console.log('isLoggedIn: ', isLoggedIn);
+        if(isLoggedIn === false) {
+            widgetIsOpen = true;
+            widget.showWindow();
+            console.log('widgetIsOpen hide if', widgetIsOpen);
+        } else {
+            widgetIsOpen = false;
+            console.log('widgetIsOpen hide else', widgetIsOpen);
+        }
+        // console.log('widget is being hidden');
+    });
+    widget.on('after-hide', () => {
+        // console.log('widget is now hidden');
+        if(isLoggedIn === false) {
+            widgetIsOpen = true;
+            widget.showWindow();
+            console.log('widgetIsOpen after-hide if', widgetIsOpen);
+        } else {
+            widgetIsOpen = false;
+            console.log('widgetIsOpen after-hide else', widgetIsOpen);
+        }
+
+        // if (isReplyPending) {
+        //   // widget.showWindow();
+        // }
+    });
+    widget.on('focus-lost', () => {
+        // widget.showWindow();
+        console.log('widget lost focus');
+    });
+    // widget.showWindow();
+
+
+    criticalErrorHandler.setMainWindow(mainWindow);
+
+    console.log('registry config data: ', registryConfig.data);
+    config.setRegistryConfigData(registryConfig.data);
+    // mainWindow.registryConfigData = registryConfig.data;
+
+    // listen for status updates and pass on to renderer
+    userActivityMonitor.on('status', (status) => {
+        console.log('user activity status under useractivitymonitor: ', status);
+        // mainWindow.webContents.send('user-activity-update', status);
+    });
+
+    // start monitoring user activity (needs to be started after the app is ready)
+    userActivityMonitor.startMonitoring();
+
+    // if (shouldShowTrayIcon()) {
+    //   // set up tray icon
+    //   trayIcon = new Tray(trayImages.normal);
+    //   if (process.platform === 'darwin') {
+    //     trayIcon.setPressedImage(trayImages.clicked.normal);
+    //     systemPreferences.subscribeNotification('AppleInterfaceThemeChangedNotification', () => {
+    //       switchMenuIconImages(trayImages, systemPreferences.isDarkMode());
+    //       trayIcon.setImage(trayImages.normal);
+    //     });
+    //   }
+    //
+    //   trayIcon.setToolTip(app.getName());
+    //   trayIcon.on('click', () => {
+    //     if (!mainWindow.isVisible() || mainWindow.isMinimized()) {
+    //       if (mainWindow.isMinimized()) {
+    //         // mainWindow.restore();
+    //       } else {
+    //         // mainWindow.show();
+    //       }
+    //       // mainWindow.focus();
+    //       if (process.platform === 'darwin') {
+    //         app.dock.show();
+    //       }
+    //     } else {
+    //       // mainWindow.focus();
+    //     }
+    //   });
+    //
+    //   trayIcon.on('right-click', () => {
+    //     trayIcon.popUpContextMenu();
+    //   });
+    //   trayIcon.on('balloon-click', () => {
+    //     if (process.platform === 'win32' || process.platform === 'darwin') {
+    //       if (mainWindow.isMinimized()) {
+    //         // mainWindow.restore();
+    //       } else {
+    //         // mainWindow.show();
+    //       }
+    //     }
+    //
+    //     if (process.platform === 'darwin') {
+    //       app.dock.show();
+    //     }
+    //
+    //     // mainWindow.focus();
+    //   });
+    // }
+
     if (process.platform === 'darwin') {
-      trayIcon.setPressedImage(trayImages.clicked.normal);
-      systemPreferences.subscribeNotification('AppleInterfaceThemeChangedNotification', () => {
-        switchMenuIconImages(trayImages, systemPreferences.isDarkMode());
-        trayIcon.setImage(trayImages.normal);
-      });
+        session.defaultSession.on('will-download', (event, item) => {
+            const filename = item.getFilename();
+            const savePath = dialog.showSaveDialog({
+                title: filename,
+                defaultPath: os.homedir() + '/Downloads/' + filename,
+            });
+
+            if (savePath) {
+                item.setSavePath(savePath);
+            } else {
+                item.cancel();
+            }
+        });
     }
 
-    trayIcon.setToolTip(app.getName());
-    trayIcon.on('click', () => {
-      if (!mainWindow.isVisible() || mainWindow.isMinimized()) {
-        if (mainWindow.isMinimized()) {
-          // mainWindow.restore();
-        } else {
-          // mainWindow.show();
+    console.log('config data for update-menu: ', config.data);
+
+    ipcMain.emit('update-menu', true, config.data);
+
+    ipcMain.emit('update-dict');
+
+    // supported permission types
+    const supportedPermissionTypes = [
+        'media',
+        'geolocation',
+        'notifications',
+        'fullscreen',
+        'openExternal',
+    ];
+
+    // handle permission requests
+    // - approve if a supported permission type and the request comes from the renderer or one of the defined servers
+    session.defaultSession.setPermissionRequestHandler((webContents, permission, callback) => {
+        // is the requested permission type supported?
+        if (!supportedPermissionTypes.includes(permission)) {
+            callback(false);
+            return;
         }
-        // mainWindow.focus();
-        if (process.platform === 'darwin') {
-          app.dock.show();
-        }
-      } else {
-        // mainWindow.focus();
-      }
+
+        // is the request coming from the renderer?
+        // if (webContents.id === mainWindow.webContents.id) {
+        //   callback(true);
+        //   return;
+        // }
+
+        // get the requesting webContents url
+        const requestingURL = webContents.getURL();
+
+        // is the target url trusted?
+        const matchingTeamIndex = config.teams.findIndex((team) => {
+            return requestingURL.startsWith(team.url);
+        });
+
+        callback(matchingTeamIndex >= 0);
     });
-
-    trayIcon.on('right-click', () => {
-      trayIcon.popUpContextMenu();
-    });
-    trayIcon.on('balloon-click', () => {
-      if (process.platform === 'win32' || process.platform === 'darwin') {
-        if (mainWindow.isMinimized()) {
-          // mainWindow.restore();
-        } else {
-          // mainWindow.show();
-        }
-      }
-
-      if (process.platform === 'darwin') {
-        app.dock.show();
-      }
-
-      // mainWindow.focus();
-    });
-  }
-
-  if (process.platform === 'darwin') {
-    session.defaultSession.on('will-download', (event, item) => {
-      const filename = item.getFilename();
-      const savePath = dialog.showSaveDialog({
-        title: filename,
-        defaultPath: os.homedir() + '/Downloads/' + filename,
-      });
-
-      if (savePath) {
-        item.setSavePath(savePath);
-      } else {
-        item.cancel();
-      }
-    });
-  }
-
-  console.log('config data for update-menu: ', config.data);
-
-  ipcMain.emit('update-menu', true, config.data);
-
-  ipcMain.emit('update-dict');
-
-  // supported permission types
-  const supportedPermissionTypes = [
-    'media',
-    'geolocation',
-    'notifications',
-    'fullscreen',
-    'openExternal',
-  ];
-
-  // handle permission requests
-  // - approve if a supported permission type and the request comes from the renderer or one of the defined servers
-  session.defaultSession.setPermissionRequestHandler((webContents, permission, callback) => {
-    // is the requested permission type supported?
-    if (!supportedPermissionTypes.includes(permission)) {
-      callback(false);
-      return;
-    }
-
-    // is the request coming from the renderer?
-    if (webContents.id === mainWindow.webContents.id) {
-      callback(true);
-      return;
-    }
-
-    // get the requesting webContents url
-    const requestingURL = webContents.getURL();
-
-    // is the target url trusted?
-    const matchingTeamIndex = config.teams.findIndex((team) => {
-      return requestingURL.startsWith(team.url);
-    });
-
-    callback(matchingTeamIndex >= 0);
-  });
 }
 
 //
@@ -784,147 +905,147 @@ function initializeAfterAppReady() {
 //
 
 function handleLoginCredentialsEvent(event, request, user, password) {
-  console.log('comes under handleLoginCredentialsEvent: ', handleLoginCredentialsEvent);
-  const callback = loginCallbackMap.get(JSON.stringify(request));
-  if (callback != null) {
-    callback(user, password);
-  }
+    console.log('comes under handleLoginCredentialsEvent: ', handleLoginCredentialsEvent);
+    const callback = loginCallbackMap.get(JSON.stringify(request));
+    if (callback != null) {
+        callback(user, password);
+    }
 }
 
 function handleDownloadURLEvent(event, url) {
-  downloadURL(mainWindow, url, (err) => {
-    if (err) {
-      dialog.showMessageBox(mainWindow, {
-        type: 'error',
-        message: err.toString(),
-      });
-      console.log(err);
-    }
-  });
+    downloadURL(mainWindow, url, (err) => {
+        if (err) {
+            dialog.showMessageBox(mainWindow, {
+                type: 'error',
+                message: err.toString(),
+            });
+            console.log(err);
+        }
+    });
 }
 
 function handleNotifiedEvent() {
-  if (process.platform === 'win32' || process.platform === 'linux') {
-    if (config.notifications.flashWindow === 2) {
-      mainWindow.flashFrame(true);
+    if (process.platform === 'win32' || process.platform === 'linux') {
+        if (config.notifications.flashWindow === 2) {
+            // mainWindow.flashFrame(true);
+        }
     }
-  }
 
-  if (process.platform === 'darwin' && config.notifications.bounceIcon) {
-    app.dock.bounce(config.notifications.bounceIconType);
-  }
+    if (process.platform === 'darwin' && config.notifications.bounceIcon) {
+        app.dock.bounce(config.notifications.bounceIconType);
+    }
 }
 
 function handleUpdateTitleEvent(event, arg) {
-  mainWindow.setTitle(arg.title);
+    // mainWindow.setTitle(arg.title);
 }
 
 function handleUpdateUnreadEvent(event, arg) {
-  if (process.platform === 'win32') {
-    const overlay = arg.overlayDataURL ? nativeImage.createFromDataURL(arg.overlayDataURL) : null;
-    if (mainWindow) {
-      mainWindow.setOverlayIcon(overlay, arg.description);
+    if (process.platform === 'win32') {
+        const overlay = arg.overlayDataURL ? nativeImage.createFromDataURL(arg.overlayDataURL) : null;
+        // if (mainWindow) {
+        //   mainWindow.setOverlayIcon(overlay, arg.description);
+        // }
     }
-  }
 
-  if (trayIcon && !trayIcon.isDestroyed()) {
-    if (arg.sessionExpired) {
-      // reuse the mention icon when the session is expired
-      trayIcon.setImage(trayImages.mention);
-      if (process.platform === 'darwin') {
-        trayIcon.setPressedImage(trayImages.clicked.mention);
-      }
-      trayIcon.setToolTip('Session Expired: Please sign in to continue receiving notifications.');
-    } else if (arg.mentionCount > 0) {
-      trayIcon.setImage(trayImages.mention);
-      if (process.platform === 'darwin') {
-        trayIcon.setPressedImage(trayImages.clicked.mention);
-      }
-      trayIcon.setToolTip(arg.mentionCount + ' unread mentions');
-    } else if (arg.unreadCount > 0) {
-      trayIcon.setImage(trayImages.unread);
-      if (process.platform === 'darwin') {
-        trayIcon.setPressedImage(trayImages.clicked.unread);
-      }
-      trayIcon.setToolTip(arg.unreadCount + ' unread channels');
-    } else {
-      trayIcon.setImage(trayImages.normal);
-      if (process.platform === 'darwin') {
-        trayIcon.setPressedImage(trayImages.clicked.normal);
-      }
-      trayIcon.setToolTip(app.getName());
+    if (trayIcon && !trayIcon.isDestroyed()) {
+        if (arg.sessionExpired) {
+            // reuse the mention icon when the session is expired
+            trayIcon.setImage(trayImages.mention);
+            if (process.platform === 'darwin') {
+                trayIcon.setPressedImage(trayImages.clicked.mention);
+            }
+            trayIcon.setToolTip('Session Expired: Please sign in to continue receiving notifications.');
+        } else if (arg.mentionCount > 0) {
+            trayIcon.setImage(trayImages.mention);
+            if (process.platform === 'darwin') {
+                trayIcon.setPressedImage(trayImages.clicked.mention);
+            }
+            trayIcon.setToolTip(arg.mentionCount + ' unread mentions');
+        } else if (arg.unreadCount > 0) {
+            trayIcon.setImage(trayImages.unread);
+            if (process.platform === 'darwin') {
+                trayIcon.setPressedImage(trayImages.clicked.unread);
+            }
+            trayIcon.setToolTip(arg.unreadCount + ' unread channels');
+        } else {
+            trayIcon.setImage(trayImages.normal);
+            if (process.platform === 'darwin') {
+                trayIcon.setPressedImage(trayImages.clicked.normal);
+            }
+            trayIcon.setToolTip(app.getName());
+        }
     }
-  }
 }
 
 function handleUpdateMenuEvent(event, configData) {
-  // const aMenu = appMenu.createMenu(mainWindow, configData, global.isDev);
-  const aMenu = appMenu.createMenu(mainWindow, configData, global.isDev);
-  Menu.setApplicationMenu(aMenu);
+    // const aMenu = appMenu.createMenu(mainWindow, configData, global.isDev);
+    const aMenu = appMenu.createMenu(mainWindow, configData, global.isDev);
+    Menu.setApplicationMenu(aMenu);
 
-  // set up context menu for tray icon
-  if (shouldShowTrayIcon()) {
-    const tMenu = trayMenu.createMenu(mainWindow, configData, global.isDev);
-    if (process.platform === 'darwin' || process.platform === 'linux') {
-      // store the information, if the tray was initialized, for checking in the settings, if the application
-      // was restarted after setting "Show icon on menu bar"
-      if (trayIcon) {
-        trayIcon.setContextMenu(tMenu);
-        mainWindow.trayWasVisible = true;
-      } else {
-        mainWindow.trayWasVisible = false;
-      }
-    } else if (trayIcon) {
-      trayIcon.setContextMenu(tMenu);
+    // set up context menu for tray icon
+    if (shouldShowTrayIcon()) {
+        const tMenu = trayMenu.createMenu(mainWindow, configData, global.isDev);
+        if (process.platform === 'darwin' || process.platform === 'linux') {
+            // store the information, if the tray was initialized, for checking in the settings, if the application
+            // was restarted after setting "Show icon on menu bar"
+            if (trayIcon) {
+                trayIcon.setContextMenu(tMenu);
+                // mainWindow.trayWasVisible = true;
+            } else {
+                // mainWindow.trayWasVisible = false;
+            }
+        } else if (trayIcon) {
+            trayIcon.setContextMenu(tMenu);
+        }
     }
-  }
 }
 
 function handleUpdateDictionaryEvent() {
-  if (config.useSpellChecker) {
-    spellChecker = new SpellChecker(
-      config.spellCheckerLocale,
-      path.resolve(app.getAppPath(), 'node_modules/simple-spellchecker/dict'),
-      (err) => {
-        if (err) {
-          console.error(err);
-        }
-      });
-  }
+    if (config.useSpellChecker) {
+        spellChecker = new SpellChecker(
+            config.spellCheckerLocale,
+            path.resolve(app.getAppPath(), 'node_modules/simple-spellchecker/dict'),
+            (err) => {
+                if (err) {
+                    console.error(err);
+                }
+            });
+    }
 }
 
 function handleCheckSpellingEvent(event, word) {
-  let res = null;
-  if (config.useSpellChecker && spellChecker.isReady() && word !== null) {
-    res = spellChecker.spellCheck(word);
-  }
-  event.returnValue = res;
+    let res = null;
+    if (config.useSpellChecker && spellChecker.isReady() && word !== null) {
+        res = spellChecker.spellCheck(word);
+    }
+    event.returnValue = res;
 }
 
 function handleGetSpellingSuggestionsEvent(event, word) {
-  if (config.useSpellChecker && spellChecker.isReady() && word !== null) {
-    event.returnValue = spellChecker.getSuggestions(word, 10);
-  } else {
-    event.returnValue = [];
-  }
+    if (config.useSpellChecker && spellChecker.isReady() && word !== null) {
+        event.returnValue = spellChecker.getSuggestions(word, 10);
+    } else {
+        event.returnValue = [];
+    }
 }
 
 function handleGetSpellcheckerLocaleEvent(event) {
-  event.returnValue = config.spellCheckerLocale;
+    event.returnValue = config.spellCheckerLocale;
 }
 
 function handleReplyOnSpellcheckerIsReadyEvent(event) {
-  if (!spellChecker) {
-    return;
-  }
+    if (!spellChecker) {
+        return;
+    }
 
-  if (spellChecker.isReady()) {
-    event.sender.send('spellchecker-is-ready');
-    return;
-  }
-  spellChecker.once('ready', () => {
-    event.sender.send('spellchecker-is-ready');
-  });
+    if (spellChecker.isReady()) {
+        event.sender.send('spellchecker-is-ready');
+        return;
+    }
+    spellChecker.once('ready', () => {
+        event.sender.send('spellchecker-is-ready');
+    });
 }
 
 //
@@ -932,14 +1053,14 @@ function handleReplyOnSpellcheckerIsReadyEvent(event) {
 //
 
 function handleMainWindowClosed() {
-  // Dereference the window object, usually you would store windows
-  // in an array if your app supports multi windows, this is the time
-  // when you should delete the corresponding element.
-  mainWindow = null;
+    // Dereference the window object, usually you would store windows
+    // in an array if your app supports multi windows, this is the time
+    // when you should delete the corresponding element.
+    mainWindow = null;
 }
 
 function handleMainWindowWebContentsCrashed() {
-  throw new Error('webContents \'crashed\' event has been emitted');
+    throw new Error('webContents \'crashed\' event has been emitted');
 }
 
 //
@@ -947,308 +1068,349 @@ function handleMainWindowWebContentsCrashed() {
 //
 
 function parseURL(url) {
-  if (!url) {
-    return null;
-  }
-  if (url instanceof URL) {
-    return url;
-  }
-  try {
-    return new URL(url);
-  } catch (e) {
-    return null;
-  }
+    if (!url) {
+        return null;
+    }
+    if (url instanceof URL) {
+        return url;
+    }
+    try {
+        return new URL(url);
+    } catch (e) {
+        return null;
+    }
 }
 
 function isTrustedURL(url) {
-  const parsedURL = parseURL(url);
-  if (!parsedURL) {
+    const parsedURL = parseURL(url);
+    if (!parsedURL) {
+        return false;
+    }
+    const teamURLs = config.teams.reduce((urls, team) => {
+        const parsedTeamURL = parseURL(team.url);
+        if (parsedTeamURL) {
+            return urls.concat(parsedTeamURL);
+        }
+        return urls;
+    }, []);
+    for (const teamURL of teamURLs) {
+        if (parsedURL.origin === teamURL.origin) {
+            return true;
+        }
+    }
     return false;
-  }
-  const teamURLs = config.teams.reduce((urls, team) => {
-    const parsedTeamURL = parseURL(team.url);
-    if (parsedTeamURL) {
-      return urls.concat(parsedTeamURL);
-    }
-    return urls;
-  }, []);
-  for (const teamURL of teamURLs) {
-    if (parsedURL.origin === teamURL.origin) {
-      return true;
-    }
-  }
-  return false;
 }
 
 function isTrustedPopupWindow(webContents) {
-  if (!webContents) {
-    return false;
-  }
-  if (!popupWindow) {
-    return false;
-  }
-  return BrowserWindow.fromWebContents(webContents) === popupWindow;
+    if (!webContents) {
+        return false;
+    }
+    if (!popupWindow) {
+        return false;
+    }
+    return BrowserWindow.fromWebContents(webContents) === popupWindow;
 }
 
 function isCustomLoginURL(url) {
-  console.log('isCustomLoginURL: ', url);
-  const parsedURL = parseURL(url);
-  if (!parsedURL) {
-    return false;
-  }
-  if (!isTrustedURL(parsedURL)) {
-    console.log('not isTrustedURL');
-    return false;
-  }
-  const urlPath = parsedURL.pathname;
-  console.log('regex path: ', urlPath);
-
-  if (url.pathname === '/' || url.pathname === '/login' || url.pathname === '/signup_email' || url.pathname === '/reset_password'
-      || url.pathname === '/select_team' || url.pathname === '/create_team/display_name' || url.pathname === '/create_team/team_url') {
-    widget.showWindow();
-    if(url.pathname === '/login') {
-      isLoggedIn = false;
+    console.log('isCustomLoginURL: ', url);
+    const parsedURL = parseURL(url);
+    if (!parsedURL) {
+        return false;
     }
-    mainWindow.show();
-  }
-  // } else {
-  //   mainWindow.hide();
-  //   // clearAppCache();
-  // }
-
-  for (const regexPath of customLoginRegexPaths) {
-    console.log('comes under for regexPath: ');
-    if (urlPath.match(regexPath)) {
-      console.log('comes under return true of urlpath');
-      return true;
+    if (!isTrustedURL(parsedURL)) {
+        console.log('not isTrustedURL');
+        return false;
     }
-  }
-  return false;
+    const urlPath = parsedURL.pathname;
+    console.log('regex path: ', urlPath);
+
+    if (url.pathname === '/' || url.pathname === '/login' || url.pathname === '/signup_email' || url.pathname === '/reset_password'
+        || url.pathname === '/select_team' || url.pathname === '/create_team/display_name' || url.pathname === '/create_team/team_url') {
+        widget.showWindow();
+        if(url.pathname === '/login') {
+            isLoggedIn = false;
+        }
+        // mainWindow.show();
+    } else {
+        isLoggedIn = true;
+    }
+    // } else {
+    //   mainWindow.hide();
+    //   // clearAppCache();
+    // }
+
+    for (const regexPath of customLoginRegexPaths) {
+        console.log('comes under for regexPath: ');
+        if (urlPath.match(regexPath)) {
+            console.log('comes under return true of urlpath');
+            return true;
+        }
+    }
+    return false;
 }
 
 function getTrayImages() {
-  switch (process.platform) {
-  case 'win32':
-    return {
-      normal: nativeImage.createFromPath(path.resolve(assetsDir, 'windows/tray.ico')),
-      unread: nativeImage.createFromPath(path.resolve(assetsDir, 'windows/tray_unread.ico')),
-      mention: nativeImage.createFromPath(path.resolve(assetsDir, 'windows/tray_mention.ico')),
-    };
-  case 'darwin':
-  {
-    const icons = {
-      light: {
-        normal: nativeImage.createFromPath(path.resolve(assetsDir, 'osx/MenuIcon.png')),
-        unread: nativeImage.createFromPath(path.resolve(assetsDir, 'osx/MenuIconUnread.png')),
-        mention: nativeImage.createFromPath(path.resolve(assetsDir, 'osx/MenuIconMention.png')),
-      },
-      clicked: {
-        normal: nativeImage.createFromPath(path.resolve(assetsDir, 'osx/ClickedMenuIcon.png')),
-        unread: nativeImage.createFromPath(path.resolve(assetsDir, 'osx/ClickedMenuIconUnread.png')),
-        mention: nativeImage.createFromPath(path.resolve(assetsDir, 'osx/ClickedMenuIconMention.png')),
-      },
-    };
-    switchMenuIconImages(icons, systemPreferences.isDarkMode());
-    return icons;
-  }
-  case 'linux':
-  {
-    const theme = config.trayIconTheme;
-    try {
-      return {
-        normal: nativeImage.createFromPath(path.resolve(assetsDir, 'linux', theme, 'MenuIconTemplate.png')),
-        unread: nativeImage.createFromPath(path.resolve(assetsDir, 'linux', theme, 'MenuIconUnreadTemplate.png')),
-        mention: nativeImage.createFromPath(path.resolve(assetsDir, 'linux', theme, 'MenuIconMentionTemplate.png')),
-      };
-    } catch (e) {
-      //Fallback for invalid theme setting
-      return {
-        normal: nativeImage.createFromPath(path.resolve(assetsDir, 'linux', 'light', 'MenuIconTemplate.png')),
-        unread: nativeImage.createFromPath(path.resolve(assetsDir, 'linux', 'light', 'MenuIconUnreadTemplate.png')),
-        mention: nativeImage.createFromPath(path.resolve(assetsDir, 'linux', 'light', 'MenuIconMentionTemplate.png')),
-      };
+    switch (process.platform) {
+        case 'win32':
+            return {
+                normal: nativeImage.createFromPath(path.resolve(assetsDir, 'windows/tray.ico')),
+                unread: nativeImage.createFromPath(path.resolve(assetsDir, 'windows/tray_unread.ico')),
+                mention: nativeImage.createFromPath(path.resolve(assetsDir, 'windows/tray_mention.ico')),
+            };
+        case 'darwin':
+        {
+            const icons = {
+                light: {
+                    normal: nativeImage.createFromPath(path.resolve(assetsDir, 'osx/MenuIcon.png')),
+                    unread: nativeImage.createFromPath(path.resolve(assetsDir, 'osx/MenuIconUnread.png')),
+                    mention: nativeImage.createFromPath(path.resolve(assetsDir, 'osx/MenuIconMention.png')),
+                },
+                clicked: {
+                    normal: nativeImage.createFromPath(path.resolve(assetsDir, 'osx/ClickedMenuIcon.png')),
+                    unread: nativeImage.createFromPath(path.resolve(assetsDir, 'osx/ClickedMenuIconUnread.png')),
+                    mention: nativeImage.createFromPath(path.resolve(assetsDir, 'osx/ClickedMenuIconMention.png')),
+                },
+            };
+            switchMenuIconImages(icons, systemPreferences.isDarkMode());
+            return icons;
+        }
+        case 'linux':
+        {
+            const theme = config.trayIconTheme;
+            try {
+                return {
+                    normal: nativeImage.createFromPath(path.resolve(assetsDir, 'linux', theme, 'MenuIconTemplate.png')),
+                    unread: nativeImage.createFromPath(path.resolve(assetsDir, 'linux', theme, 'MenuIconUnreadTemplate.png')),
+                    mention: nativeImage.createFromPath(path.resolve(assetsDir, 'linux', theme, 'MenuIconMentionTemplate.png')),
+                };
+            } catch (e) {
+                //Fallback for invalid theme setting
+                return {
+                    normal: nativeImage.createFromPath(path.resolve(assetsDir, 'linux', 'light', 'MenuIconTemplate.png')),
+                    unread: nativeImage.createFromPath(path.resolve(assetsDir, 'linux', 'light', 'MenuIconUnreadTemplate.png')),
+                    mention: nativeImage.createFromPath(path.resolve(assetsDir, 'linux', 'light', 'MenuIconMentionTemplate.png')),
+                };
+            }
+        }
+        default:
+            return {};
     }
-  }
-  default:
-    return {};
-  }
 }
 
 function switchMenuIconImages(icons, isDarkMode) {
-  if (isDarkMode) {
-    icons.normal = icons.clicked.normal;
-    icons.unread = icons.clicked.unread;
-    icons.mention = icons.clicked.mention;
-  } else {
-    icons.normal = icons.light.normal;
-    icons.unread = icons.light.unread;
-    icons.mention = icons.light.mention;
-  }
+    if (isDarkMode) {
+        icons.normal = icons.clicked.normal;
+        icons.unread = icons.clicked.unread;
+        icons.mention = icons.clicked.mention;
+    } else {
+        icons.normal = icons.light.normal;
+        icons.unread = icons.light.unread;
+        icons.mention = icons.light.mention;
+    }
 }
 
 function getDeeplinkingURL(args) {
-  if (Array.isArray(args) && args.length) {
-    // deeplink urls should always be the last argument, but may not be the first (i.e. Windows with the app already running)
-    const url = args[args.length - 1];
-    if (url && scheme && url.startsWith(scheme) && Utils.isValidURI(url)) {
-      return url;
+    if (Array.isArray(args) && args.length) {
+        // deeplink urls should always be the last argument, but may not be the first (i.e. Windows with the app already running)
+        const url = args[args.length - 1];
+        if (url && scheme && url.startsWith(scheme) && Utils.isValidURI(url)) {
+            return url;
+        }
     }
-  }
-  return null;
+    return null;
 }
 
 function shouldShowTrayIcon() {
-  return true;
-  if (process.platform === 'win32') {
-    return true;
-  }
-  if (['darwin', 'linux'].includes(process.platform) && config.showTrayIcon === true) {
-    return true;
-  }
-  return false;
+    return false;
+    // return true;
+    // if (process.platform === 'win32') {
+    //   return true;
+    // }
+    // if (['darwin', 'linux'].includes(process.platform) && config.showTrayIcon === true) {
+    //   return true;
+    // }
+    // return false;
 }
 
 function wasUpdated(lastAppVersion) {
-  return lastAppVersion !== app.getVersion();
+    return lastAppVersion !== app.getVersion();
 }
 
 function clearAppCache() {
-  if (mainWindow) {
-    console.log('Clear cache after update');
-    mainWindow.webContents.session.clearCache(() => {
-      //Restart after cache clear
-      mainWindow.reload();
-    });
-  } else {
-    //Wait for mainWindow
-    setTimeout(clearAppCache, 100);
-  }
+    if (mainWindow) {
+        console.log('Clear cache after update');
+        // mainWindow.webContents.session.clearCache(() => {
+        // // // Restart after cache clear
+        //   // mainWindow.reload();
+        // });
+    } else {
+        //Wait for mainWindow
+        setTimeout(clearAppCache, 100);
+    }
 }
 
 function getValidWindowPosition(state, screen) {
-  // Check if the previous position is out of the viewable area
-  // (e.g. because the screen has been plugged off)
-  const displays = screen.getAllDisplays();
-  let minX = 0;
-  let maxX = 0;
-  let minY = 0;
-  let maxY = 0;
-  for (let i = 0; i < displays.length; i++) {
-    const display = displays[i];
-    maxX = Math.max(maxX, display.bounds.x + display.bounds.width);
-    maxY = Math.max(maxY, display.bounds.y + display.bounds.height);
-    minX = Math.min(minX, display.bounds.x);
-    minY = Math.min(minY, display.bounds.y);
-  }
+    // Check if the previous position is out of the viewable area
+    // (e.g. because the screen has been plugged off)
+    const displays = screen.getAllDisplays();
+    let minX = 0;
+    let maxX = 0;
+    let minY = 0;
+    let maxY = 0;
+    for (let i = 0; i < displays.length; i++) {
+        const display = displays[i];
+        maxX = Math.max(maxX, display.bounds.x + display.bounds.width);
+        maxY = Math.max(maxY, display.bounds.y + display.bounds.height);
+        minX = Math.min(minX, display.bounds.x);
+        minY = Math.min(minY, display.bounds.y);
+    }
 
-  if (state.x > maxX || state.y > maxY || state.x < minX || state.y < minY) {
-    Reflect.deleteProperty(state, 'x');
-    Reflect.deleteProperty(state, 'y');
-    Reflect.deleteProperty(state, 'width');
-    Reflect.deleteProperty(state, 'height');
-  }
+    if (state.x > maxX || state.y > maxY || state.x < minX || state.y < minY) {
+        Reflect.deleteProperty(state, 'x');
+        Reflect.deleteProperty(state, 'y');
+        Reflect.deleteProperty(state, 'width');
+        Reflect.deleteProperty(state, 'height');
+    }
 
-  return state;
+    return state;
 }
 
 function resizeScreen(screen, browserWindow) {
-  function handle() {
-    const position = browserWindow.getPosition();
-    const size = browserWindow.getSize();
-    const validPosition = getValidWindowPosition({
-      x: position[0],
-      y: position[1],
-      width: size[0],
-      height: size[1],
-    }, screen);
-    browserWindow.setPosition(validPosition.x || 0, validPosition.y || 0);
-  }
+    function handle() {
+        const position = browserWindow.getPosition();
+        const size = browserWindow.getSize();
+        const validPosition = getValidWindowPosition({
+            x: position[0],
+            y: position[1],
+            width: size[0],
+            height: size[1],
+        }, screen);
+        browserWindow.setPosition(validPosition.x || 0, validPosition.y || 0);
+    }
 
-  browserWindow.on('restore', handle);
-  handle();
+    browserWindow.on('restore', handle);
+    handle();
 }
 
 function initializeChatWidget() {
-  console.log('comes under initializeChatWidget');
-  // if (!trayIcon) return;
-  if(trayIcon) {
-    trayIcon.destroy();
-    // trayIcon = new Tray(trayImages.normal);
-  }
-
-  if (widget) return;
-  // mainWindow.openDevTools(); // for consoles view in widget
-
-  console.log('initializing widget');
-  console.log(process.cwd());
-  console.log(app.getAppPath());
-
-
-  widget = menubar({
-    // index: 'file://' + process.cwd() + '/src/browser/widget.html',
-    // index: app.getPath('userData') + '/src/browser/widget.html',
-
-    index: 'file://' + app.getAppPath() + '/browser/index.html',
-    showOnAllWorkspaces: true,
-    browserWindow: {
-      // width: 300,
-      // height: 325,
-      alwaysOnTop: true,
-      resizable: true,
-      webPreferences: {
-        nodeIntegration: true,
-        contextIsolation: false,
-        webviewTag: true,
-        disableBlinkFeatures: 'Auxclick',
-      },
-    },
-    preloadWindow: true,
-    icon: trayImages.normal,
-    tray: trayIcon,
-    showDockIcon: false,  // for showing widget on all window if value is 'false'
-    tooltip: 'Chat Widget',
-  });
-
-  widget.window = mainWindow;
-  mainWindow = null;
-  widget.registryConfigData = registryConfig.data;
-  console.log('widget registry data: ', registryConfig.data);
-  widget.on('ready', () => {
-    console.log('widget is created');
-    widget.showWindow();
-  });
-  widget.on('after-create-window', () => {
-    console.log('widget window is created');
-    widget.window.openDevTools(); // for consoles view in widget
-  });
-  widget.on('show', () => {
-    console.log('widget is shown');
-  });
-  widget.on('after-show', () => {
-    console.log('widget is shown');
-    if (!isReplyPending) {
-      // widget.hideWindow();
-    }
-  });
-  widget.on('hide', () => {
-    console.log('isLoggedIn: ', isLoggedIn);
-    if(!isLoggedIn) {
-      widget.showWindow();
-    }
-    console.log('widget is being hidden');
-  });
-  widget.on('after-hide', () => {
-    console.log('widget is now hidden');
-    if(!isLoggedIn) {
-      widget.showWindow();
+    console.log('comes under initializeChatWidget');
+    // if (!trayIcon) return;
+    if(trayIcon) {
+        // trayIcon.destroy();
+        // trayIcon = new Tray(trayImages.normal);
     }
 
-    // if (isReplyPending) {
-    //   // widget.showWindow();
-    // }
-  });
-  widget.on('focus-lost', () => {
-    console.log('widget lost focus');
-  });
-  widget.showWindow();
+    // if (widget) return;
+    // mainWindow.openDevTools(); // for consoles view in widget
+
+    console.log('initializing widget');
+    console.log(process.cwd());
+    console.log(app.getAppPath());
+
+
+    // widget = menubar({
+    //   // index: 'file://' + process.cwd() + '/src/browser/widget.html',
+    //   // index: app.getPath('userData') + '/src/browser/widget.html',
+    //
+    //   index: 'file://' + app.getAppPath() + '/browser/index.html',
+    //   showOnAllWorkspaces: true,
+    //   browserWindow: {
+    //     // width: 300,
+    //     // height: 325,
+    //     alwaysOnTop: true,
+    //     resizable: true,
+    //     webPreferences: {
+    //       nodeIntegration: true,
+    //       contextIsolation: false,
+    //       webviewTag: true,
+    //       disableBlinkFeatures: 'Auxclick',
+    //     },
+    //   },
+    //   preloadWindow: true,
+    //   icon: trayImages.normal,
+    //   tray: trayIcon,
+    //   // showDockIcon: false,  // for showing widget on all window if value is 'false'
+    //   tooltip: 'Chat Widget',
+    // });
+
+    // widget.window = mainWindow;
+
+    // widget.window = Object.assign({}, mainWindow);
+
+    // mainWindow.close();
+
+    // mainWindow.on('closed', handleMainWindowClosed);
+    // mainWindow.on('unresponsive', criticalErrorHandler.windowUnresponsiveHandler.bind(criticalErrorHandler));
+    // mainWindow.webContents.on('crashed', handleMainWindowWebContentsCrashed);
+
+
+
+
+    // trayIcon.setToolTip(app.getName());
+    // trayIcon.on('click', () => {
+    //     if(isLoggedIn === 'false') {
+    //         widget.showWindow();
+    //     } else {
+    //         widget.hideWindow();
+    //     }
+    //     // if (!mainWindow.isVisible() || mainWindow.isMinimized()) {
+    //     //     if (mainWindow.isMinimized()) {
+    //     //         // mainWindow.restore();
+    //     //     } else {
+    //     //         // mainWindow.show();
+    //     //     }
+    //     //     // mainWindow.focus();
+    //     //     if (process.platform === 'darwin') {
+    //     //         app.dock.show();
+    //     //     }
+    //     // } else {
+    //     //     // mainWindow.focus();
+    //     // }
+    // });
+
+
+
+
+
+    // widget.window.registryConfigData = registryConfig.data;
+    // console.log('widget registry data: ', registryConfig.data);
+    // widget.on('ready', () => {
+    //   console.log('widget is created');
+    //   widget.showWindow();
+    // });
+    // widget.on('after-create-window', () => {
+    //   console.log('widget window is created');
+    //   widget.window.openDevTools(); // for consoles view in widget
+    // });
+    // widget.on('show', () => {
+    //   console.log('widget is shown');
+    // });
+    // widget.on('after-show', () => {
+    //   console.log('widget is shown');
+    //   // if (!isReplyPending) {
+    //   //   // widget.hideWindow();
+    //   // }
+    // });
+    // widget.on('hide', () => {
+    //   console.log('isLoggedIn: ', isLoggedIn);
+    //   if(isLoggedIn === false) {
+    //     widget.showWindow();
+    //   }
+    //   // console.log('widget is being hidden');
+    // });
+    // widget.on('after-hide', () => {
+    //   // console.log('widget is now hidden');
+    //   if(isLoggedIn === false) {
+    //     widget.showWindow();
+    //   }
+    //
+    //   // if (isReplyPending) {
+    //   //   // widget.showWindow();
+    //   // }
+    // });
+    // widget.on('focus-lost', () => {
+    //   widget.showWindow();
+    //   console.log('widget lost focus');
+    // });
+    // widget.showWindow();
 }

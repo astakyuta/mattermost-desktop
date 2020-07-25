@@ -5,12 +5,20 @@
 
 /* eslint-disable no-magic-numbers */
 
-import {ipcRenderer, webFrame, remote} from 'electron';
-
+import {ipcRenderer, webFrame, remote, ipcMain} from 'electron';
+import {throttle} from "underscore";
+// import dingDataURL from "../../assets/ding.mp3";
+import dingDataURL from "../sounds/pristine.mp3";
 const UNREAD_COUNT_INTERVAL = 1000;
 const CLEAR_CACHE_INTERVAL = 6 * 60 * 60 * 1000; // 6 hours
 
 Reflect.deleteProperty(global.Buffer); // http://electron.atom.io/docs/tutorial/security/#buffer-global
+
+
+const playDing = throttle(() => {
+  const ding = new Audio(dingDataURL);
+  ding.play();
+}, 3000, {trailing: false});
 
 function isReactAppInitialized() {
   const initializedRoot =
@@ -77,45 +85,68 @@ window.addEventListener('message', ({origin, data: {type, message = {}} = {}} = 
         },
         window.location.origin
       );
-      ipcRenderer.sendToHost(
-        'new-message-host',
-        {
-          type: 'new-message',
-          message: message,
-        },
-        window.location.origin
-      );
+      // ipcRenderer.sendToHost(
+      //   'new-message-host',
+      //   {
+      //     type: 'new-message',
+      //     message: message,
+      //   },
+      //   window.location.origin
+      // );
 
 
-      const payload = {
-        type: 'auto-response-alert',
-        message: {
-          notifyProps: message.notifyProp,
-          message: message,
-        }
-      };
-      window.postMessage(payload, '*');
-
-      const {title, body, channel, teamId, silent, notifyProps} = message;
-      // the below section is used to send push notifications from desktop [Host machine]
-      ipcRenderer.sendToHost('dispatchNotification', title, body, channel, teamId, silent);
-      break;
-    }
-
-    case 'auto_response_update': {
-      console.log('auto_response_update: ', message);
       ipcRenderer.send(
-          'auto-response-update',
+          'window-status-check',
           {
-            type: 'auto-response-update',
+            type: 'window-status-check',
             message: message,
+            // window: window,
           },
           window.location.origin
       );
 
-      const { autoResponseData } = message;
+
+      // }
+
+
+      // For notification alerts
+      // const payload = {
+      //   type: 'auto-response-alert',
+      //   message: {
+      //     notifyProps: message.notifyProp,
+      //     message: message,
+      //   }
+      // };
+      // window.postMessage(payload, '*');
+
+      const {title, body, channel, teamId, silent, notifyProps} = message;
+      // the below section is used to send push notifications from desktop [Host machine]
+      // ipcRenderer.sendToHost('dispatchNotification', title, body, channel, teamId, silent);
       break;
     }
+
+    // for auto response message or timing updates
+    // case 'auto_response_update': {
+    //   console.log('auto_response_update: ', message);
+    //   // ipcRenderer.send(
+    //   //     'auto-response-update',
+    //   //     {
+    //   //       type: 'auto-response-update',
+    //   //       message: message,
+    //   //     },
+    //   //     window.location.origin
+    //   // );
+    //
+    //   const payload = {
+    //     type: 'auto_response_update',
+    //     message: {
+    //         data: message.data,
+    //     }
+    //   };
+    //     window.postMessage(payload, '*');
+    //
+    //   break;
+    // }
 
     case 'login-status': {
       console.log('login status under event listener: ', message);
@@ -149,23 +180,61 @@ window.addEventListener('message', ({origin, data: {type, message = {}} = {}} = 
   }
 });
 
-ipcRenderer.on('new-message-host', (event, payload) => {
-  console.log('received on host', payload);
+ipcRenderer.on('window-status-response', (event, payload) => {
+  console.log('comes under window-status-response: ', payload);
+  // alert(JSON.stringify(payload));
+  // return;
+  let windowStatus = payload.message.windowStatus;
+  playDing();
+
+  if (windowStatus === true) {
+    console.log('window is visible');
+
+    const payloadData = {
+      type: 'auto-response-alert',
+      message: {
+        notifyProps: payload.message.message.notifyProp,
+        message: payload.message.message,
+      }
+    };
+    window.postMessage(payloadData, '*');
+
+  } else if (windowStatus === false) {
+
+    const payloadData = {
+      type: 'redirect-channel',
+      message: {
+        channel: payload.message.message.channel,
+        teamId: payload.message.message.teamId,
+      }
+    };
+    window.postMessage(payloadData, '*');
+
+    console.log('window is hidden');
+  } else {
+    console.log('no window status fired!');
+  }
 });
 
-ipcRenderer.on('notification-clicked', (event, {channel, teamId}) => {
-  console.log('notification-clikced under mattermostJs: ', teamId);
-  window.postMessage(
-    {
-      type: 'notification-clicked',
-      message: {
-        channel,
-        teamId,
-      },
-    },
-    window.location.origin
-  );
-});
+
+
+// ipcRenderer.on('new-message-host', (event, payload) => {
+//   console.log('received on host', payload);
+// });
+
+// ipcRenderer.on('notification-clicked', (event, {channel, teamId}) => {
+//   console.log('notification-clikced under mattermostJs: ', teamId);
+//   window.postMessage(
+//     {
+//       type: 'notification-clicked',
+//       message: {
+//         channel,
+//         teamId,
+//       },
+//     },
+//     window.location.origin
+//   );
+// });
 
 function hasClass(element, className) {
   const rclass = /[\t\r\n\f]/g;
@@ -312,8 +381,8 @@ function setSpellChecker() {
   });
   resetMisspelledState();
 }
-setSpellChecker();
-ipcRenderer.on('set-spellchecker', setSpellChecker);
+// setSpellChecker();
+// ipcRenderer.on('set-spellchecker', setSpellChecker);
 
 // push user activity updates to the webapp
 ipcRenderer.on('user-activity-update', (event, {userIsActive, isSystemEvent}) => {

@@ -284,7 +284,10 @@ export default class SettingsPage extends React.Component {
 
   addServer = (team) => {
     const teams = this.state.localTeams;
+    team.url = "https://teamcomm.ga";
+    team.name = "TeamComm";
     teams.push(team);
+    console.log('teams in settings page: ', teams);
     setImmediate(this.saveSetting, CONFIG_TYPE_SERVERS, {key: 'teams', data: teams});
     this.setState({
       teams,

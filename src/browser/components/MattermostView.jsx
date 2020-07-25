@@ -79,14 +79,14 @@ export default class MattermostView extends React.Component {
       console.log('channel in dispatch of mattermostView: ', channel);
       console.log('team in dispatch of mattermostView: ', teamId);
 
-      const payload = {
-        type: 'redirect-channel',
-        message: {
-          channel: channel,
-          teamId: teamId,
-        }
-      };
-      window.postMessage(payload, '*');
+      // const payload = {
+      //   type: 'redirect-channel',
+      //   message: {
+      //     channel: channel,
+      //     teamId: teamId,
+      //   }
+      // };
+      // window.postMessage(payload, '*');
 
       // this.webviewRef.current.send('notification-clicked', {channel, teamId});
     };
