@@ -12,6 +12,8 @@ import dingDataURL from "../sounds/pristine.mp3";
 const UNREAD_COUNT_INTERVAL = 1000;
 const CLEAR_CACHE_INTERVAL = 6 * 60 * 60 * 1000; // 6 hours
 
+// let sound = require('../sounds/pristine.mp3');
+
 Reflect.deleteProperty(global.Buffer); // http://electron.atom.io/docs/tutorial/security/#buffer-global
 
 
@@ -95,6 +97,7 @@ window.addEventListener('message', ({origin, data: {type, message = {}} = {}} = 
       // );
 
 
+      // response is handled in window-status-response
       ipcRenderer.send(
           'window-status-check',
           {
@@ -148,6 +151,36 @@ window.addEventListener('message', ({origin, data: {type, message = {}} = {}} = 
     //   break;
     // }
 
+    case 'login-button-clicked': {
+      console.log('login status under event listener: ', message);
+      ipcRenderer.send(
+          'login-button-clicked',
+          {
+              type: 'login-button-clicked',
+              message: message,
+          },
+          window.location.origin
+      );
+
+      // const { status } = message;
+      break;
+    }
+
+    case 'logout-button-clicked': {
+      console.log('login status under event listener: ', message);
+      ipcRenderer.send(
+          'logout-button-clicked',
+          {
+              type: 'login-button-clicked',
+              message: message,
+          },
+          window.location.origin
+      );
+
+      // const { status } = message;
+      break;
+    }
+
     case 'login-status': {
       console.log('login status under event listener: ', message);
       ipcRenderer.send(
@@ -186,6 +219,10 @@ ipcRenderer.on('window-status-response', (event, payload) => {
   // return;
   let windowStatus = payload.message.windowStatus;
   playDing();
+
+  // let audio = new Audio(sound);
+  // audio.play();
+
 
   if (windowStatus === true) {
     console.log('window is visible');

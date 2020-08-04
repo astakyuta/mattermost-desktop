@@ -72,6 +72,7 @@ let ipcWidget = null;
 let isReplyPending = false;
 let isLoggedIn = false; // used to determine the show Widget Window when tray button is clicked
 let widgetIsOpen = '';
+let messageArrivalWindowActivation = false;
 
 // supported custom login paths (oath, saml)
 const customLoginRegexPaths = [
@@ -163,6 +164,7 @@ function initializeConfig() {
 }
 
 function initializeAppEventListeners() {
+    app.commandLine.appendSwitch('autoplay-policy', 'no-user-gesture-required');
     app.on('second-instance', handleAppSecondInstance);
     app.on('window-all-closed', handleAppWindowAllClosed);
     app.on('browser-window-created', handleAppBrowserWindowCreated);
@@ -260,9 +262,11 @@ function initializeInterCommunicationEventListeners() {
 
 
     ipcMain.on('window-status-check', (event, payload) => {
-        console.log('comes under main window-status-alert: '); //, widget.getFocusedWindow());
+        console.log('comes under main window-status-alert widgetIsOpen: ', widgetIsOpen); //, widget.getFocusedWindow());
         console.log('payload is: ', payload);
         // return;
+
+        messageArrivalWindowActivation = true;
 
         // data from this event sender is being handled by ipcRenderer.on('window-status-response'...)
         event.sender.send(
@@ -277,22 +281,48 @@ function initializeInterCommunicationEventListeners() {
         );
 
         if(widgetIsOpen === false) {
-            widget.showWindow();
+            console.log('comes under show window while new message arrives', widgetIsOpen);
+            // widget.showWindow();
+        } else {
+            console.log('comes under show window else part while new message arrives', widgetIsOpen);
         }
 
     })
 
     ipcMain.on('login-status', (event, payload) => {
         console.log('login-status data in main: ', payload);
-        widget.hideWindow();
-        isLoggedIn = true;
+
+        setTimeout(function(){
+            widget.hideWindow();
+            isLoggedIn = true;
+            widgetIsOpen = false;
+        }, 3000);
+
+        // widget.hideWindow();
+        // isLoggedIn = true;
+        // widgetIsOpen = false;
+
         // mainWindow.webContents.session.clearCache(() => {
         //   mainWindow.reload();
         // });
     });
 
+
+    // the below code is used to hide the widget once the login is successful from the app
+    ipcMain.on('login-button-clicked', (event, payload) => {
+        widget.hideWindow();
+    });
+
+    ipcMain.on('logout-button-clicked', (event, payload) => {
+        isLoggedIn = false;
+        messageArrivalWindowActivation = false;
+        widget.showWindow();
+    });
+
     ipcMain.on('quit-app', (event, payload) => {
         console.log('quit-app data in main: ', payload);
+        widgetIsOpen = '';
+        messageArrivalWindowActivation = false;
         app.quit();
         // widget.webContents.session.clearStorageData();
         // widget.reload();
@@ -524,7 +554,9 @@ function handleAppWebContentsCreated(dc, contents) {
         }
 
         log.info(`Untrusted URL blocked: ${url}`);
-        event.preventDefault();
+
+        return;
+        // event.preventDefault();
     });
 
     // handle custom login requests (oath, saml):
@@ -699,7 +731,8 @@ function initializeAfterAppReady() {
             // width: 300,
             // height: 325,
             alwaysOnTop: true,
-            resizable: true,
+            resizable: false,
+            skipTaskbar: true,
             webPreferences: {
                 nodeIntegration: true,
                 contextIsolation: false,
@@ -713,6 +746,10 @@ function initializeAfterAppReady() {
         // showDockIcon: false,  // for showing widget on all window if value is 'false'
         tooltip: 'Chat Widget',
     });
+
+    // widget.window.setSkipTaskbar(true);
+    // mainWindow.setSkipTaskbar(true);
+    // widget.setSkipTaskbar(true);
 
     // widget.window = createMainWindow(config.data, {
     //     hideOnStartup,
@@ -733,17 +770,14 @@ function initializeAfterAppReady() {
         // widget.window.openDevTools(); // for consoles view in widget
     });
     widget.on('show', () => {
-        console.log('widget is shown');
+        // console.log('widget is shown');
         widgetIsOpen = true;
-        console.log('widgetIsOpen show: ', widgetIsOpen);
+        // console.log('widgetIsOpen show: ', widgetIsOpen);
     });
     widget.on('after-show', () => {
-        console.log('widget is shown');
+        // console.log('widget is shown');
         widgetIsOpen = true;
-        console.log('widgetIsOpen after-show: ', widgetIsOpen);
-        // if (!isReplyPending) {
-        //   // widget.hideWindow();
-        // }
+        // console.log('widgetIsOpen after-show: ', widgetIsOpen);
     });
     widget.on('hide', () => {
         console.log('isLoggedIn: ', isLoggedIn);
@@ -759,6 +793,7 @@ function initializeAfterAppReady() {
     });
     widget.on('after-hide', () => {
         // console.log('widget is now hidden');
+
         if(isLoggedIn === false) {
             widgetIsOpen = true;
             widget.showWindow();
@@ -773,10 +808,16 @@ function initializeAfterAppReady() {
         // }
     });
     widget.on('focus-lost', () => {
-        // widget.showWindow();
-        console.log('widget lost focus');
+        if(isLoggedIn === false) {
+            widgetIsOpen = true;
+            widget.showWindow();
+        } else {
+            widgetIsOpen = false;
+            widget.hideWindow();
+        }
+        // console.log('widget lost focus');
     });
-    // widget.showWindow();
+
 
 
     criticalErrorHandler.setMainWindow(mainWindow);
@@ -1133,6 +1174,13 @@ function isCustomLoginURL(url) {
         // mainWindow.show();
     } else {
         isLoggedIn = true;
+        if (messageArrivalWindowActivation === true) {
+            widget.showWindow();
+            // messageArrivalWindowActivation = false;
+        } else {
+            widget.hideWindow();
+        }
+
     }
     // } else {
     //   mainWindow.hide();
