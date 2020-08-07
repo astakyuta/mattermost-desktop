@@ -72,7 +72,7 @@ let ipcWidget = null;
 let isReplyPending = false;
 let isLoggedIn = false; // used to determine the show Widget Window when tray button is clicked
 let widgetIsOpen = '';
-let messageArrivalWindowActivation = false;
+// let messageArrivalWindowActivation = false;
 
 // supported custom login paths (oath, saml)
 const customLoginRegexPaths = [
@@ -266,7 +266,7 @@ function initializeInterCommunicationEventListeners() {
         console.log('payload is: ', payload);
         // return;
 
-        messageArrivalWindowActivation = true;
+        // messageArrivalWindowActivation = true;
 
         // data from this event sender is being handled by ipcRenderer.on('window-status-response'...)
         event.sender.send(
@@ -282,7 +282,7 @@ function initializeInterCommunicationEventListeners() {
 
         if(widgetIsOpen === false) {
             console.log('comes under show window while new message arrives', widgetIsOpen);
-            // widget.showWindow();
+            widget.showWindow();
         } else {
             console.log('comes under show window else part while new message arrives', widgetIsOpen);
         }
@@ -293,9 +293,9 @@ function initializeInterCommunicationEventListeners() {
         console.log('login-status data in main: ', payload);
 
         setTimeout(function(){
-            widget.hideWindow();
             isLoggedIn = true;
             widgetIsOpen = false;
+            widget.hideWindow();
         }, 3000);
 
         // widget.hideWindow();
@@ -315,14 +315,14 @@ function initializeInterCommunicationEventListeners() {
 
     ipcMain.on('logout-button-clicked', (event, payload) => {
         isLoggedIn = false;
-        messageArrivalWindowActivation = false;
+        // messageArrivalWindowActivation = false;
         widget.showWindow();
     });
 
     ipcMain.on('quit-app', (event, payload) => {
         console.log('quit-app data in main: ', payload);
         widgetIsOpen = '';
-        messageArrivalWindowActivation = false;
+        // messageArrivalWindowActivation = false;
         app.quit();
         // widget.webContents.session.clearStorageData();
         // widget.reload();
@@ -1174,12 +1174,13 @@ function isCustomLoginURL(url) {
         // mainWindow.show();
     } else {
         isLoggedIn = true;
-        if (messageArrivalWindowActivation === true) {
-            widget.showWindow();
-            // messageArrivalWindowActivation = false;
-        } else {
-            widget.hideWindow();
-        }
+
+        // if (messageArrivalWindowActivation === true) {
+        //     widget.showWindow();
+        //     // messageArrivalWindowActivation = false;
+        // } else {
+        //     widget.hideWindow();
+        // }
 
     }
     // } else {
