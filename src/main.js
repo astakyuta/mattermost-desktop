@@ -729,7 +729,7 @@ function initializeAfterAppReady() {
         // }),
         browserWindow: {
             // width: 300,
-            // height: 325,
+            height: 550,
             alwaysOnTop: true,
             resizable: false,
             skipTaskbar: true,
