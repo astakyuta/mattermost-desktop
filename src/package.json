@@ -1,11 +1,11 @@
 {
-  "name": "mattermost-desktop",
-  "productName": "Mattermost",
-  "desktopName": "Mattermost.desktop",
-  "version": "4.3.0-develop",
-  "description": "Mattermost",
+  "name": "Myallchat",
+  "productName": "Myallchat",
+  "desktopName": "Myallchat.desktop",
+  "version": "5.1.0",
+  "description": "Chatting Application",
   "main": "main_bundle.js",
-  "author": "Mattermost, Inc. <feedback@mattermost.com>",
+  "author": "Valleyobcare Medical Inc. <973202@gmail.com>",
   "homepage": "https://about.mattermost.com",
   "license": "Apache-2.0",
   "dependencies": {
