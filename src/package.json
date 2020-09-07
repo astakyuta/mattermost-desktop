@@ -1,8 +1,8 @@
 {
-  "name": "Myallchat",
-  "productName": "Myallchat",
-  "desktopName": "Myallchat.desktop",
-  "version": "5.1.0",
+  "name": "TeamCom",
+  "productName": "TeamCom",
+  "desktopName": "TeamCom.desktop",
+  "version": "5.1.1",
   "description": "Chatting Application",
   "main": "main_bundle.js",
   "author": "Valleyobcare Medical Inc. <973202@gmail.com>",

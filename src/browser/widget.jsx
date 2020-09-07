@@ -307,7 +307,7 @@ class WidgetContainer extends React.Component {
 
         // Send auto responses to the unreplied messages
         const obj = {channel_ids: channel_ids};
-        let url = 'http://teamcomm.ga/api/v4/posts/auto_response';
+        let url = 'http://teamcom.me/api/v4/posts/auto_response';
         fetch(url, {
             method: 'POST', // *GET, POST, PUT, DELETE, etc.
             headers: {
@@ -530,7 +530,7 @@ class WidgetContainer extends React.Component {
         // this.removeTab(this.state.tabIndex);
 
         // let token = 'Bearer eeodjab9wbnyxyabdbfern7rzw';
-        let url = 'http://teamcomm.ga/api/v4/posts';
+        let url = 'http://teamcom.me/api/v4/posts';
         fetch(url, {
             method: 'POST', // *GET, POST, PUT, DELETE, etc.
             headers: {
