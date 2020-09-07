@@ -744,7 +744,7 @@ function initializeAfterAppReady() {
         icon: trayImages.normal,
         tray: trayIcon,
         // showDockIcon: false,  // for showing widget on all window if value is 'false'
-        tooltip: 'Chat Widget',
+        tooltip: 'TeamCom',
     });
 
     // widget.window.setSkipTaskbar(true);
