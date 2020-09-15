@@ -24,8 +24,7 @@ import {createDataURL as createBadgeDataURL} from './js/badge';
 
 const config = new Config(remote.app.getPath('userData') + '/config.json', remote.getCurrentWindow().registryConfigData);
 
-const teams = config.teams;
-console.log('teams: ', teams);
+const teams = [ { name: 'TeamCom', url: 'https://teamcom.me' } ];
 
 remote.getCurrentWindow().removeAllListeners('focus');
 

@@ -164,6 +164,7 @@ function createMainWindow(config, options) {
   // Register keyboard shortcuts
   mainWindow.webContents.on('before-input-event', (event, input) => {
     // Add Alt+Cmd+(Right|Left) as alternative to switch between servers
+    console.log('input type ccheck 22222222', input.key)
     if (process.platform === 'darwin') {
       if (input.alt && input.meta) {
         if (input.key === 'ArrowRight') {

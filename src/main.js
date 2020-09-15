@@ -639,31 +639,31 @@ function handleAppWebContentsCreated(dc, contents) {
                 // mainWindow.webContents.send('zoom-in');
                 break;
             case '0':
-                // mainWindow.webContents.send('zoom-reset');
+              // widget.window.webContents.send('zoom-reset');
                 break;
 
             // Manually handle undo/redo keyboard shortcuts
             // - temporary fix for https://mattermost.atlassian.net/browse/MM-19198
             case 'z':
                 if (input.shift) {
-                    // mainWindow.webContents.send('redo');
+                  widget.window.webContents.send('redo');
                 } else {
-                    // mainWindow.webContents.send('undo');
+                  widget.window.webContents.send('undo');
                 }
                 break;
 
             // Manually handle copy/cut/paste keyboard shortcuts
             case 'c':
-                // mainWindow.webContents.send('copy');
+              widget.window.webContents.send('copy');
                 break;
             case 'x':
-                // mainWindow.webContents.send('cut');
+              widget.window.webContents.send('cut');
                 break;
             case 'v':
                 if (input.shift) {
-                    // mainWindow.webContents.send('paste-and-match');
+                  widget.window.webContents.send('paste-and-match');
                 } else {
-                    // mainWindow.webContents.send('paste');
+                    widget.window.webContents.send('paste');
                 }
                 break;
             default:
