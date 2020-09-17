@@ -1,8 +1,8 @@
 {
   "name": "TeamCom",
   "productName": "TeamCom",
-  "version": "5.1.1",
-  "description": "Chatting Application",
+  "version": "5.1.3",
+  "description": "Valley OBGYN",
   "main": "main.js",
   "author": "Valleyobcare Medical Inc. <973202@gmail.com>",
   "license": "Apache-2.0",
